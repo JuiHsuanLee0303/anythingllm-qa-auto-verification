@@ -1,3 +1,9 @@
+"""
+QA 驗證系統主程式
+此模組實現了一個自動化的問答驗證系統，用於評估 LLM 回答的準確性。
+系統會從 Excel 檔案讀取問答對，將問題發送到 AnythingLLM，並計算回答的相似度。
+"""
+
 import os
 import requests
 from dotenv import load_dotenv
@@ -21,23 +27,59 @@ from config import Config
 from logger import Logger
 from similarity_analyzer import SimilarityAnalyzer
 
-# Load environment variables
+# 載入環境變數
 load_dotenv()
 
-# Initialize configuration
+# 初始化配置
 config = Config.load_from_env()
 
-# Initialize BERT model for semantic similarity
+# 初始化 BERT 模型用於語義相似度計算
 model = SentenceTransformer(config.MODEL_NAME)
 
 class QAVerificationSystem:
+    """
+    QA 驗證系統的主要類別
+    負責處理問答對的驗證、文件上傳和相似度分析等功能
+    """
+    
     def __init__(self):
+        """
+        初始化 QA 驗證系統
+        設置配置、日誌記錄器和相似度分析器
+        """
         self.config = Config.load_from_env()
-        self.logger = Logger("qa_verification")
+        self.logger = Logger("QA資料驗證")
         self.similarity_analyzer = SimilarityAnalyzer(self.config.MODEL_NAME)
     
+    def validate_api_key(self):
+        """
+        驗證 API 金鑰是否有效
+        """
+        try:
+            response = requests.get(
+                f'{self.config.API_BASE_URL}/api/v1/auth',
+                headers=self.config.get_headers()
+            )
+            response.raise_for_status()
+            self.logger.info("✅ API 金鑰驗證成功")
+            return True
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"API 金鑰驗證失敗: {str(e)}")
+            return False
+        except Exception as e:
+            self.logger.error(f"API 金鑰驗證時發生錯誤: {str(e)}", exc_info=e)
+            return False
+
     def get_workspace_slug(self, workspace_name: str) -> Optional[str]:
-        """獲取工作區的 slug"""
+        """
+        獲取工作區的 slug
+        
+        Args:
+            workspace_name (str): 工作區名稱
+            
+        Returns:
+            Optional[str]: 工作區的 slug，如果未找到則返回 None
+        """
         try:
             self.logger.info(f"🔍 搜尋工作區: {workspace_name}")
             response = requests.get(
@@ -50,21 +92,98 @@ class QAVerificationSystem:
             if isinstance(workspaces, list):
                 for workspace in workspaces:
                     if isinstance(workspace, dict) and workspace.get('name') == workspace_name:
+                        self.logger.info(f"✅ 找到工作區: {workspace_name}")
                         return workspace.get('slug')
             elif isinstance(workspaces, dict):
                 workspace_list = workspaces.get('workspaces', [])
                 for workspace in workspace_list:
                     if workspace.get('name') == workspace_name:
+                        self.logger.info(f"✅ 找到工作區: {workspace_name}")
                         return workspace.get('slug')
             
-            self.logger.warning(f"工作區 '{workspace_name}' 未找到")
+            self.logger.info(f"❌ 工作區 '{workspace_name}' 不存在")
             return None
         except Exception as e:
             self.logger.error(f"獲取工作區時發生錯誤: {str(e)}", exc_info=e)
             return None
+        
+    def create_workspace(self, workspace_name: str, similarityThreshold: float = 0.7, 
+                        Temp: float = 0.7, historyLength: int = 20, 
+                        systemPrompt: str = "Custom prompt for responses", 
+                        queryRefusalResponse: str = "Custom refusal message", 
+                        chatMode: str = "chat", topN: int = 4) -> Optional[str]:
+        """
+        創建新的工作區
+        
+        Args:
+            workspace_name (str): 工作區名稱
+            similarityThreshold (float, optional): 相似度閾值，預設為 0.7
+            Temp (float, optional): OpenAI 溫度參數，預設為 0.7
+            historyLength (int, optional): 歷史記錄長度，預設為 20
+            systemPrompt (str, optional): 系統提示詞，預設為 "Custom prompt for responses"
+            queryRefusalResponse (str, optional): 拒絕回應訊息，預設為 "Custom refusal message"
+            chatMode (str, optional): 聊天模式，預設為 "chat"
+            topN (int, optional): 返回結果數量，預設為 4
+            
+        Returns:
+            Optional[str]: 成功時返回工作區的 slug，失敗時返回 None
+        """
+        try:
+            self.logger.info(f"🔍 創建工作區: {workspace_name}")
+            
+            # 準備請求資料
+            payload = {
+                "name": workspace_name,
+                "similarityThreshold": similarityThreshold,
+                "openAiTemp": Temp,
+                "openAiHistory": historyLength,
+                "openAiPrompt": systemPrompt,
+                "queryRefusalResponse": queryRefusalResponse,
+                "chatMode": chatMode,
+                "topN": topN
+            }
+            
+            # 發送 POST 請求
+            response = requests.post(
+                f'{self.config.API_BASE_URL}/api/v1/workspace/new',
+                headers=self.config.get_headers(),
+                json=payload,
+                timeout=30  # 添加超時設定
+            )
+            
+            # 檢查回應狀態
+            response.raise_for_status()
+            
+            # 解析回應
+            result = response.json().get('workspace')
+            if not result or 'slug' not in result:
+                self.logger.error("API 回應中未包含工作區 slug")
+                return None
+                
+            self.logger.info(f"✅ 成功創建工作區: {workspace_name}")
+            return result.get('slug')
+            
+        except requests.exceptions.Timeout:
+            self.logger.error("創建工作區請求超時")
+            return None
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"創建工作區時發生網路錯誤: {str(e)}")
+            return None
+        except Exception as e:
+            self.logger.error(f"創建工作區時發生錯誤: {str(e)}", exc_info=e)
+            return None
     
     def send_chat_message(self, workspace_slug: str, message: str) -> Optional[Dict]:
-        """發送聊天訊息到指定工作區"""
+        """
+        發送聊天訊息到指定工作區
+        
+        Args:
+            workspace_slug (str): 工作區的 slug
+            message (str): 要發送的訊息內容
+            
+        Returns:
+            Optional[Dict]: API 回應的 JSON 資料，如果發生錯誤則返回 None
+        """
         try:
             session_id = str(uuid.uuid4())
             payload = {
@@ -87,7 +206,16 @@ class QAVerificationSystem:
             return None
     
     def process_qa_pairs(self, workspace_slug: str, excel_handler: ExcelHandler) -> List[Dict[str, float]]:
-        """處理問答對並返回相似度分數"""
+        """
+        處理問答對並計算相似度分數
+        
+        Args:
+            workspace_slug (str): 工作區的 slug
+            excel_handler (ExcelHandler): Excel 檔案處理器實例
+            
+        Returns:
+            List[Dict[str, float]]: 所有問答對的相似度分數列表
+        """
         all_similarity_scores = []
         all_qa_pairs = excel_handler.get_all_qa_pairs()
         
@@ -118,7 +246,16 @@ class QAVerificationSystem:
         return all_similarity_scores
     
     def upload_documents(self, workspace_slug: str, directory: str) -> bool:
-        """上傳指定目錄中的所有文件到 AnythingLLM"""
+        """
+        上傳指定目錄中的所有支援文件到 AnythingLLM
+        
+        Args:
+            workspace_slug (str): 工作區的 slug
+            directory (str): 要上傳的文件目錄路徑
+            
+        Returns:
+            bool: 上傳是否成功
+        """
         try:
             self.logger.info(f"📤 開始上傳文件從目錄: {directory}")
             
@@ -166,15 +303,27 @@ class QAVerificationSystem:
             return False
 
     def run(self, workspace_name: str, excel_file: str, upload_dir: Optional[str] = None):
-        """運行 QA 驗證系統"""
+        """
+        運行 QA 驗證系統的主要流程
+        
+        Args:
+            workspace_name (str): 工作區名稱
+            excel_file (str): Excel 檔案路徑
+            upload_dir (Optional[str]): 要上傳的文件目錄路徑（可選）
+        """
         try:
+            # 驗證 API 金鑰
+            if not self.validate_api_key():
+                return
+
             # 獲取工作區 slug
             workspace_slug = self.get_workspace_slug(workspace_name)
             if not workspace_slug:
-                return
-            
-            self.logger.info(f"✅ 找到工作區: {workspace_slug}")
-            
+                workspace_slug = self.create_workspace(workspace_name)
+                if not workspace_slug:
+                    self.logger.error("❌ 創建工作區失敗")
+                    return
+                        
             # 如果指定了上傳目錄，先上傳文件
             if upload_dir:
                 if not self.upload_documents(workspace_slug, upload_dir):
@@ -200,7 +349,12 @@ class QAVerificationSystem:
             self.logger.error(f"❌ 錯誤: {str(e)}", exc_info=e)
 
 def parse_arguments():
-    """解析命令列參數"""
+    """
+    解析命令列參數
+    
+    Returns:
+        argparse.Namespace: 解析後的參數物件
+    """
     parser = argparse.ArgumentParser(description='QA 驗證系統')
     parser.add_argument('-w', '--workspace', 
                       default=Config.DEFAULT_WORKSPACE,
