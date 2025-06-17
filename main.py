@@ -24,18 +24,11 @@ from similarity_analyzer import SimilarityAnalyzer
 # Load environment variables
 load_dotenv()
 
-# API Configuration
-API_KEY = os.getenv('API_KEY')
-API_BASE_URL = os.getenv('ANYTHINGLLM_URL')
+# Initialize configuration
+config = Config.load_from_env()
 
 # Initialize BERT model for semantic similarity
-model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-
-# Headers for API requests
-headers = {
-    'Authorization': f'Bearer {API_KEY}',
-    'Content-Type': 'application/json'
-}
+model = SentenceTransformer(config.MODEL_NAME)
 
 class QAVerificationSystem:
     def __init__(self):
@@ -129,18 +122,8 @@ class QAVerificationSystem:
         try:
             self.logger.info(f"📤 開始上傳文件從目錄: {directory}")
             
-            # 支援的副檔名和對應的 MIME 類型
-            mime_types = {
-                '*.txt': 'text/plain',
-                '*.pdf': 'application/pdf',
-                '*.doc': 'application/msword',
-                '*.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                '*.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                '*.md': 'text/markdown'
-            }
-            
             file_paths = []
-            for ext in mime_types.keys():
+            for ext in self.config.SUPPORTED_MIME_TYPES.keys():
                 file_paths.extend(glob.glob(os.path.join(directory, ext)))
             
             if not file_paths:
@@ -153,7 +136,7 @@ class QAVerificationSystem:
                     with open(file_path, 'rb') as f:
                         file_name = os.path.basename(file_path)
                         file_ext = os.path.splitext(file_name)[1].lower()
-                        mime_type = mime_types.get(f'*{file_ext}', 'application/octet-stream')
+                        mime_type = self.config.SUPPORTED_MIME_TYPES.get(f'*{file_ext}', 'application/octet-stream')
                         
                         files = {'file': (file_name, f, mime_type)}
                         data = {
