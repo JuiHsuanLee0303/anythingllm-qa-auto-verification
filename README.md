@@ -23,10 +23,53 @@
 
 ## 安裝要求
 
+**請先確保系統中有安裝Python**
+
+1. 創建虛擬環境
+
+使用uv：
+
 ```bash
-# 建議使用uv
 uv venv
+```
+
+使用python：
+
+```bash
+python -m venv venv
+```
+
+2. 進入虛擬環境
+
+使用uv：
+
+```bash
+# Linux
 source ./.venv/bin/activate
+# Windows
+./.venv/Script/activate
+```
+
+使用python：
+
+```bash
+# Linux
+source venv/bin/activate
+# Windows
+./venv/Script/activate
+```
+
+3. 安裝必要套件
+
+使用uv：
+
+```bash
+uv pip install -r requirements.txt
+```
+
+使用python：
+
+```bash
 pip install -r requirements.txt
 ```
 
@@ -46,14 +89,39 @@ pip install -r requirements.txt
    - 添加以下配置：
      ```
      API_KEY=your_api_key
-     ANYTHINGLLM_URL=your_llm_api_url
      ```
 
    *備註：API金鑰從 AnythingLLM 系統中生成*
 
 3. 運行程序
    ```bash
-   python main.py
+   python main.py -w <工作區名稱> -e <Excel檔案> [選項]
+   ```
+
+   必要參數：
+   - `-w, --workspace`：AnythingLLM 工作區名稱
+   - `-e, --excel`：Excel 檔案路徑
+
+   選用參數：
+   - `-d, --directory`：要上傳到 AnythingLLM 的文件目錄路徑
+   - `--provider`：模型提供者（預設：ollama）
+   - `-m, --model`：模型名稱（預設：llama3.1:8b-instruct-fp16）
+   - `-s, --similarityThreshold`：相似度閾值（預設：0.7）
+   - `-t, --Temp`：溫度參數（預設：0.7）
+   - `-l, --historyLength`：歷史記錄長度（預設：20）
+   - `-p, --systemPrompt`：系統提示詞（預設：Custom prompt for responses）
+   - `-r, --queryRefusalResponse`：拒絕回應訊息（預設：Custom refusal message）
+   - `-c, --chatMode`：聊天模式（預設：query）
+   - `-n, --topN`：返回結果數量（預設：4）
+   - `-o, --output`：輸出目錄（預設：similarity_charts）
+
+   範例：
+   ```bash
+   # 基本使用
+   python main.py -w my_workspace -e questions.xlsx
+
+   # 完整參數範例
+   python main.py -w my_workspace -e questions.xlsx -d ./documents --provider ollama -m llama3.1:8b-instruct-fp16 -s 0.7 -t 0.7 -l 20 -p "自定義提示詞" -r "無法回答" -c query -n 4 -o ./output
    ```
 
 ## 相似度分數說明

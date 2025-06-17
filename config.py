@@ -28,9 +28,6 @@ class Config:
     API_KEY: str
     API_BASE_URL: str
     MODEL_NAME: str = 'paraphrase-multilingual-MiniLM-L12-v2'
-    DEFAULT_WORKSPACE: str = 'default_workspace'
-    DEFAULT_EXCEL: str = 'techman_robot.xlsx'
-    OUTPUT_DIR: str = 'similarity_charts'
     
     # 支援的文件類型和對應的 MIME 類型
     SUPPORTED_MIME_TYPES: Dict[str, str] = field(default_factory=lambda: {
@@ -53,7 +50,7 @@ class Config:
         load_dotenv()
         return cls(
             API_KEY=os.getenv('API_KEY', ''),
-            API_BASE_URL=os.getenv('ANYTHINGLLM_URL', '')
+            API_BASE_URL=os.getenv('ANYTHINGLLM_URL', 'http://localhost:3001')
         )
 
     def get_headers(self) -> dict:

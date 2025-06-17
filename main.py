@@ -7,18 +7,10 @@ QA 驗證系統主程式
 import os
 import requests
 from dotenv import load_dotenv
-import json
 import uuid
-from datetime import datetime
 from excel_handler import ExcelHandler
-from bert_score import score
-from sentence_transformers import SentenceTransformer, util
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import List, Dict, Tuple, Optional
-import pandas as pd
+from sentence_transformers import SentenceTransformer
+from typing import List, Dict, Optional
 from tqdm import tqdm
 import argparse
 import glob
@@ -107,23 +99,13 @@ class QAVerificationSystem:
             self.logger.error(f"獲取工作區時發生錯誤: {str(e)}", exc_info=e)
             return None
         
-    def create_workspace(self, workspace_name: str, similarityThreshold: float = 0.7, 
-                        Temp: float = 0.7, historyLength: int = 20, 
-                        systemPrompt: str = "Custom prompt for responses", 
-                        queryRefusalResponse: str = "Custom refusal message", 
-                        chatMode: str = "chat", topN: int = 4) -> Optional[str]:
+    def create_workspace(self, workspace_name: str, workspace_settings: Optional[Dict] = None) -> Optional[str]:
         """
         創建新的工作區
         
         Args:
             workspace_name (str): 工作區名稱
-            similarityThreshold (float, optional): 相似度閾值，預設為 0.7
-            Temp (float, optional): OpenAI 溫度參數，預設為 0.7
-            historyLength (int, optional): 歷史記錄長度，預設為 20
-            systemPrompt (str, optional): 系統提示詞，預設為 "Custom prompt for responses"
-            queryRefusalResponse (str, optional): 拒絕回應訊息，預設為 "Custom refusal message"
-            chatMode (str, optional): 聊天模式，預設為 "chat"
-            topN (int, optional): 返回結果數量，預設為 4
+            workspace_settings (Optional[Dict], optional): 工作區設定，預設為 None
             
         Returns:
             Optional[str]: 成功時返回工作區的 slug，失敗時返回 None
@@ -134,13 +116,15 @@ class QAVerificationSystem:
             # 準備請求資料
             payload = {
                 "name": workspace_name,
-                "similarityThreshold": similarityThreshold,
-                "openAiTemp": Temp,
-                "openAiHistory": historyLength,
-                "openAiPrompt": systemPrompt,
-                "queryRefusalResponse": queryRefusalResponse,
-                "chatMode": chatMode,
-                "topN": topN
+                "chatProvider": workspace_settings.get("provider", "ollama"),
+                "chatModel": workspace_settings.get("model", "llama3.1:8b-instruct-fp16"),
+                "similarityThreshold": workspace_settings.get("similarityThreshold", 0.7),
+                "openAiTemp": workspace_settings.get("Temp", 0.7),
+                "openAiHistory": workspace_settings.get("historyLength", 20),
+                "openAiPrompt": workspace_settings.get("systemPrompt", "Custom prompt for responses"),
+                "queryRefusalResponse": workspace_settings.get("queryRefusalResponse", "Custom refusal message"),
+                "chatMode": workspace_settings.get("chatMode", "chat"),
+                "topN": workspace_settings.get("topN", 4)
             }
             
             # 發送 POST 請求
@@ -164,13 +148,13 @@ class QAVerificationSystem:
             return result.get('slug')
             
         except requests.exceptions.Timeout:
-            self.logger.error("創建工作區請求超時")
+            self.logger.error("❌ 創建工作區失敗，請求超時")
             return None
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"創建工作區時發生網路錯誤: {str(e)}")
+            self.logger.error(f"❌ 創建工作區失敗，網路錯誤: {str(e)}")
             return None
         except Exception as e:
-            self.logger.error(f"創建工作區時發生錯誤: {str(e)}", exc_info=e)
+            self.logger.error(f"❌ 創建工作區失敗，發生錯誤: {str(e)}", exc_info=e)
             return None
     
     def send_chat_message(self, workspace_slug: str, message: str) -> Optional[Dict]:
@@ -193,7 +177,6 @@ class QAVerificationSystem:
                 "reset": False
             }
             
-            self.logger.info(f"📤 發送訊息到工作區: {workspace_slug}")
             response = requests.post(
                 f'{self.config.API_BASE_URL}/api/v1/workspace/{workspace_slug}/chat',
                 headers=self.config.get_headers(),
@@ -220,14 +203,14 @@ class QAVerificationSystem:
         all_qa_pairs = excel_handler.get_all_qa_pairs()
         
         total_qa_pairs = sum(len(qa_pairs) for qa_pairs in all_qa_pairs.values())
-        
-        with tqdm(total=total_qa_pairs, desc="處理問答對", unit="對") as pbar:
-            for sheet_name, qa_pairs in all_qa_pairs.items():
-                self.logger.info(f"\n📋 處理工作表: {sheet_name}")
-                
-                for row_index, (question, excel_answer) in enumerate(qa_pairs):
-                    self.logger.info(f"\n❓ 問題: {question}")
-                    
+        processed_qa_pairs = 0
+        self.logger.info(f"📋 開始處理問答對")
+
+        for sheet_name, qa_pairs in all_qa_pairs.items():
+            self.logger.info(f"📋 處理工作表: {sheet_name}")
+            table_qa_pairs = qa_pairs
+            with tqdm(total=len(table_qa_pairs), desc="處理問答對", unit="對") as pbar:
+                for row_index, (question, excel_answer) in enumerate(table_qa_pairs):                    
                     response = self.send_chat_message(workspace_slug, question)
                     if response and 'textResponse' in response:
                         llm_response = response['textResponse']
@@ -239,10 +222,11 @@ class QAVerificationSystem:
                         excel_handler.write_llm_response(sheet_name, row_index, llm_response)
                         excel_handler.write_similarity_scores(sheet_name, row_index, similarity_scores)
                     else:
-                        self.logger.warning("❌ 無法獲取 LLM 回答")
-                    
+                        self.logger.warning(f"❌ 無法獲取 LLM 回答")
                     pbar.update(1)
         
+        self.logger.info(f"✅ 問答對處理完成，共處理 {processed_qa_pairs} 個問答對")
+
         return all_similarity_scores
     
     def upload_documents(self, workspace_slug: str, directory: str) -> bool:
@@ -257,18 +241,24 @@ class QAVerificationSystem:
             bool: 上傳是否成功
         """
         try:
-            self.logger.info(f"📤 開始上傳文件從目錄: {directory}")
+            self.logger.info(f"📤 開始從目錄: {directory}上傳文件")
             
             file_paths = []
+
+            # 檢查目錄是否存在
+            if not os.path.exists(directory):
+                self.logger.error(f"❌ 目錄 {directory} 不存在")
+                return False
+
+            # 獲取目錄中所有支援的文件
             for ext in self.config.SUPPORTED_MIME_TYPES.keys():
                 file_paths.extend(glob.glob(os.path.join(directory, ext)))
             
             if not file_paths:
-                self.logger.warning(f"在目錄 {directory} 中未找到任何支援的文件")
-                return False
+                self.logger.warning(f"⚠️ 在目錄 {directory} 中未找到任何支援的文件")
             
             success_count = 0
-            for file_path in tqdm(file_paths, desc="上傳文件", unit="個"):
+            for file_path in file_paths:
                 try:
                     with open(file_path, 'rb') as f:
                         file_name = os.path.basename(file_path)
@@ -302,7 +292,7 @@ class QAVerificationSystem:
             self.logger.error(f"❌ 文件上傳過程中發生錯誤: {str(e)}", exc_info=e)
             return False
 
-    def run(self, workspace_name: str, excel_file: str, upload_dir: Optional[str] = None):
+    def run(self, workspace_name: str, excel_file: str, upload_dir: Optional[str] = None, output_dir: Optional[str] = None, workspace_settings: Optional[Dict] = None):
         """
         運行 QA 驗證系統的主要流程
         
@@ -319,9 +309,8 @@ class QAVerificationSystem:
             # 獲取工作區 slug
             workspace_slug = self.get_workspace_slug(workspace_name)
             if not workspace_slug:
-                workspace_slug = self.create_workspace(workspace_name)
+                workspace_slug = self.create_workspace(workspace_name, workspace_settings)
                 if not workspace_slug:
-                    self.logger.error("❌ 創建工作區失敗")
                     return
                         
             # 如果指定了上傳目錄，先上傳文件
@@ -340,7 +329,7 @@ class QAVerificationSystem:
                 self.logger.info("\n📊 生成統計圖表...")
                 self.similarity_analyzer.generate_charts(
                     similarity_scores,
-                    self.config.OUTPUT_DIR
+                    output_dir
                 )
         
         except FileNotFoundError:
@@ -357,16 +346,57 @@ def parse_arguments():
     """
     parser = argparse.ArgumentParser(description='QA 驗證系統')
     parser.add_argument('-w', '--workspace', 
-                      default=Config.DEFAULT_WORKSPACE,
+                      required=True,
                       help='AnythingLLM workspace 名稱')
     parser.add_argument('-e', '--excel', 
-                      default=Config.DEFAULT_EXCEL,
+                      required=True,
                       help='Excel 檔案名稱')
     parser.add_argument('-d', '--directory',
                       help='要上傳到 AnythingLLM 的文件目錄路徑')
+    parser.add_argument('--provider',
+                      default='ollama',
+                      help='模型提供者，預設為 "ollama"')
+    parser.add_argument('-m', '--model',
+                      default='llama3.1:8b-instruct-fp16',
+                      help='模型名稱，預設為 "llama3.1:8b-instruct-fp16"')
+    parser.add_argument('-s', '--similarityThreshold',
+                      default=0.7,
+                      help='相似度閾值，預設為 0.7')
+    parser.add_argument('-t', '--Temp',
+                      default=0.7,
+                      help='溫度參數，預設為 0.7')
+    parser.add_argument('-l', '--historyLength',
+                      default=20,
+                      help='歷史記錄長度，預設為 20')
+    parser.add_argument('-p', '--systemPrompt',
+                      default="Custom prompt for responses",
+                      help='系統提示詞，預設為 "Custom prompt for responses"')
+    parser.add_argument('-r', '--queryRefusalResponse',
+                      default="Custom refusal message",
+                      help='拒絕回應訊息，預設為 "Custom refusal message"')
+    parser.add_argument('-c', '--chatMode',
+                      default="query",
+                      help='聊天模式，預設為 "query"')
+    parser.add_argument('-n', '--topN',
+                      default=4,
+                      help='返回結果數量，預設為 4')
+    parser.add_argument('-o', '--output',
+                      default='similarity_charts',
+                      help='輸出目錄，預設為 "similarity_charts"')
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_arguments()
+    workspace_settings = {
+        "provider": args.provider,
+        "model": args.model,
+        "similarityThreshold": args.similarityThreshold,
+        "Temp": args.Temp,
+        "historyLength": args.historyLength,
+        "systemPrompt": args.systemPrompt,
+        "queryRefusalResponse": args.queryRefusalResponse,
+        "chatMode": args.chatMode,
+        "topN": args.topN,
+    }
     system = QAVerificationSystem()
-    system.run(args.workspace, args.excel, args.directory)
+    system.run(args.workspace, args.excel, args.directory, args.output, workspace_settings)

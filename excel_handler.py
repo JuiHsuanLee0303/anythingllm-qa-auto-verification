@@ -81,7 +81,7 @@ class ExcelHandler:
             
             # Save the workbook
             workbook.save(self.file_path)
-            print(f"✅ 已將 LLM 回答寫入第 {row_index + 1} 行")
+            # print(f"✅ 已將 LLM 回答寫入第 {row_index + 1} 行")
         except Exception as e:
             print(f"❌ 寫入 Excel 時發生錯誤: {str(e)}")
 
@@ -107,7 +107,7 @@ class ExcelHandler:
             
             # Save the workbook
             workbook.save(self.file_path)
-            print(f"✅ 已將相似度分數寫入第 {row_index + 1} 行")
+            # print(f"✅ 已將相似度分數寫入第 {row_index + 1} 行")
         except Exception as e:
             print(f"❌ 寫入相似度分數時發生錯誤: {str(e)}")
 
