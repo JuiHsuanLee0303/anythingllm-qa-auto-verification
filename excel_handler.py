@@ -1,18 +1,25 @@
 import pandas as pd
 from typing import List, Dict, Tuple
 import openpyxl
+from logger import Logger # Assuming Logger is in a file named logger.py
 
 class ExcelHandler:
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, logger: Logger):
         """
-        Initialize ExcelHandler with the path to the Excel file.
-        
-        Args:
-            file_path (str): Path to the Excel file
+        Initialize ExcelHandler, loading the workbook into memory.
         """
         self.file_path = file_path
-        self.excel_file = pd.ExcelFile(file_path)
-    
+        self.logger = logger
+        try:
+            self.workbook = openpyxl.load_workbook(file_path)
+            self.logger.info(f"✅ 成功載入 Excel 檔案: {file_path}")
+        except FileNotFoundError:
+            self.logger.error(f"❌ Excel 檔案未找到: {file_path}", exc_info=True)
+            raise
+        except Exception as e:
+            self.logger.error(f"❌ 載入 Excel 檔案時發生錯誤: {e}", exc_info=True)
+            raise
+
     def get_all_sheets(self) -> List[str]:
         """
         Get all sheet names from the Excel file.
@@ -20,7 +27,7 @@ class ExcelHandler:
         Returns:
             List[str]: List of sheet names
         """
-        return self.excel_file.sheet_names
+        return self.workbook.sheetnames
     
     def get_qa_pairs(self, sheet_name: str) -> List[Tuple[str, str]]:
         """
@@ -34,82 +41,84 @@ class ExcelHandler:
         Returns:
             List[Tuple[str, str]]: List of (question, answer) pairs
         """
-        df = pd.read_excel(self.file_path, sheet_name=sheet_name, header=None)
-        
-        # Ensure there are at least 2 columns
-        if len(df.columns) < 2:
-            raise ValueError(f"Sheet {sheet_name} must have at least 2 columns")
-        
-        # Get first two columns
-        questions = df.iloc[:, 0].astype(str)
-        answers = df.iloc[:, 1].astype(str)
-        
-        # Filter out empty rows
-        qa_pairs = [(q.strip(), a.strip()) for q, a in zip(questions, answers) 
-                   if q.strip() and a.strip()]
-        
-        return qa_pairs
+        try:
+            df = pd.read_excel(self.file_path, sheet_name=sheet_name, header=None)
+            
+            # Ensure there are at least 2 columns
+            if len(df.columns) < 2:
+                self.logger.warning(f"⚠️ 工作表 '{sheet_name}' 的欄數少於 2，將被跳過。")
+                return []
+            
+            # Get first two columns
+            questions = df.iloc[:, 0].astype(str)
+            answers = df.iloc[:, 1].astype(str)
+            
+            # Filter out empty rows
+            qa_pairs = [(q.strip(), a.strip()) for q, a in zip(questions, answers) 
+                       if q.strip() and a.strip()]
+            
+            return qa_pairs
+        except Exception as e:
+            self.logger.error(f"❌ 處理工作表 '{sheet_name}' 時發生錯誤: {e}", exc_info=True)
+            return []
     
     def get_all_qa_pairs(self) -> Dict[str, List[Tuple[str, str]]]:
         """
         Get Q&A pairs from all sheets in the Excel file.
-        
-        Returns:
-            Dict[str, List[Tuple[str, str]]]: Dictionary mapping sheet names to Q&A pairs
         """
-        result = {}
-        for sheet_name in self.get_all_sheets():
-            result[sheet_name] = self.get_qa_pairs(sheet_name)
-        return result
+        # We need to use pandas to get all sheets initially.
+        try:
+            excel_file = pd.ExcelFile(self.file_path)
+            sheet_names = excel_file.sheet_names
+
+            result = {}
+            for sheet_name in sheet_names:
+                result[sheet_name] = self.get_qa_pairs(sheet_name)
+            return result
+        except Exception as e:
+            self.logger.error(f"❌ 從 Excel 檔案讀取所有工作表時發生錯誤: {e}", exc_info=True)
+            return {}
 
     def write_llm_response(self, sheet_name: str, row_index: int, llm_response: str) -> None:
         """
-        Write LLM response to the third column of the specified row.
-        
-        Args:
-            sheet_name (str): Name of the sheet to write to
-            row_index (int): 0-based index of the row to write to
-            llm_response (str): The LLM response to write
+        Write LLM response to the third column. Does not save immediately.
         """
         try:
-            # Load the workbook
-            workbook = openpyxl.load_workbook(self.file_path)
-            sheet = workbook[sheet_name]
-            
-            # Write to the third column (column C)
+            sheet = self.workbook[sheet_name]
             sheet.cell(row=row_index + 1, column=3, value=llm_response)
-            
-            # Save the workbook
-            workbook.save(self.file_path)
-            # print(f"✅ 已將 LLM 回答寫入第 {row_index + 1} 行")
         except Exception as e:
-            print(f"❌ 寫入 Excel 時發生錯誤: {str(e)}")
+            self.logger.error(f"❌ 寫入 LLM 回應時發生錯誤: {e}", exc_info=True)
 
     def write_similarity_scores(self, sheet_name: str, row_index: int, similarity_scores: dict) -> None:
         """
-        Write similarity scores to the fourth and fifth columns.
-        
-        Args:
-            sheet_name (str): Name of the sheet to write to
-            row_index (int): 0-based index of the row to write to
-            similarity_scores (dict): Dictionary containing similarity scores
+        Write similarity scores. Does not save immediately.
         """
         try:
-            # Load the workbook
-            workbook = openpyxl.load_workbook(self.file_path)
-            sheet = workbook[sheet_name]
-            
-            # Write BERT Score to column D
+            sheet = self.workbook[sheet_name]
             sheet.cell(row=row_index + 1, column=4, value=similarity_scores['bert_score'])
-            
-            # Write Cosine Similarity to column E
             sheet.cell(row=row_index + 1, column=5, value=similarity_scores['cosine_similarity'])
-            
-            # Save the workbook
-            workbook.save(self.file_path)
-            # print(f"✅ 已將相似度分數寫入第 {row_index + 1} 行")
         except Exception as e:
-            print(f"❌ 寫入相似度分數時發生錯誤: {str(e)}")
+            self.logger.error(f"❌ 寫入相似度分數時發生錯誤: {e}", exc_info=True)
+
+    def save_workbook(self, output_path: str):
+        """
+        Saves the workbook to a new file path.
+        """
+        try:
+            self.workbook.save(output_path)
+            self.logger.info(f"✅ Excel 檔案成功儲存至: {output_path}")
+        except Exception as e:
+            self.logger.error(f"❌ 儲存 Excel 檔案至 '{output_path}' 時發生錯誤: {e}", exc_info=True)
+    
+    def get_total_qa_pairs(self) -> int:
+        """
+        計算所有工作表中有效的問答對總數。
+        """
+        total = 0
+        all_pairs = self.get_all_qa_pairs()
+        for sheet_name, pairs in all_pairs.items():
+            total += len(pairs)
+        return total
 
 def demo():
     """

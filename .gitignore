@@ -5,3 +5,5 @@ docs/
 logs/
 similarity_charts/
 __pycache__/
+output/
+uploads/

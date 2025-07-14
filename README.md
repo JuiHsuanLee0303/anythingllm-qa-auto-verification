@@ -75,54 +75,48 @@ pip install -r requirements.txt
 
 ## 使用方法
 
-1. 準備 Excel 文件
-   - 第一行：問題
-   - 第二行：標準答案
-   - 第三行：留空（自動填充 LLM 回答）
-   - 第四行：留空（自動填充 BERT Score）
-   - 第五行：留空（自動填充 Cosine Similarity）
-   
-   *備註：不需要表頭。*
+本系統提供兩種操作模式：現代化的 Web 操作介面與傳統的命令列模式。
 
-2. 設置環境變數
-   - 創建 `.env` 文件
-   - 添加以下配置：
-     ```
-     API_KEY=your_api_key
-     ```
+### 模式一：Web 操作介面 (建議)
 
-   *備註：API金鑰從 AnythingLLM 系統中生成*
+透過網頁介面，您可以輕鬆上傳檔案、啟動驗證並即時查看進度。
 
-3. 運行程序
-   ```bash
-   python main.py -w <工作區名稱> -e <Excel檔案> [選項]
-   ```
+1.  **安裝相依套件**
+    ```bash
+    # 建議使用 uv (比 pip 更快)
+    uv pip install -r requirements.txt
+    
+    # 或使用 pip
+    pip install -r requirements.txt
+    ```
 
-   必要參數：
-   - `-w, --workspace`：AnythingLLM 工作區名稱
-   - `-e, --excel`：Excel 檔案路徑
+2.  **設定 API 金鑰**
+    在專案根目錄建立一個 `.env` 檔案，並填入您的 AnythingLLM API 金鑰：
+    ```
+    API_KEY="your_anythingllm_api_key"
+    ```
 
-   選用參數：
-   - `-d, --directory`：要上傳到 AnythingLLM 的文件目錄路徑
-   - `--provider`：模型提供者（預設：ollama）
-   - `-m, --model`：模型名稱（預設：llama3.1:8b-instruct-fp16）
-   - `-s, --similarityThreshold`：相似度閾值（預設：0.7）
-   - `-t, --Temp`：溫度參數（預設：0.7）
-   - `-l, --historyLength`：歷史記錄長度（預設：20）
-   - `-p, --systemPrompt`：系統提示詞（預設：Custom prompt for responses）
-   - `-r, --queryRefusalResponse`：拒絕回應訊息（預設：Custom refusal message）
-   - `-c, --chatMode`：聊天模式（預設：query）
-   - `-n, --topN`：返回結果數量（預設：4）
-   - `-o, --output`：輸出目錄（預設：similarity_charts）
+3.  **啟動 Web 伺服器**
+    ```bash
+    python app.py
+    ```
 
-   範例：
-   ```bash
-   # 基本使用
-   python main.py -w my_workspace -e questions.xlsx
+4.  **開啟瀏覽器**
+    伺服器啟動後，在您的瀏覽器中開啟 `http://127.0.0.1:5001` 即可開始使用。
 
-   # 完整參數範例
-   python main.py -w my_workspace -e questions.xlsx -d ./documents --provider ollama -m llama3.1:8b-instruct-fp16 -s 0.7 -t 0.7 -l 20 -p "自定義提示詞" -r "無法回答" -c query -n 4 -o ./output
-   ```
+### 模式二：命令列介面
+
+สำหรับผู้ใช้ขั้นสูงที่ต้องการการทำงานอัตโนมัติหรือการรวมเข้ากับสคริปต์อื่น ๆ
+
+1.  **設定組態**
+    -   **API 金鑰**: 同上，設定在 `.env` 檔案中。
+    -   **其他設定**: 複製 `config.yaml.example` 為 `config.yaml` 並根據需求修改其中的參數。
+
+2.  **執行程式**
+    ```bash
+    python main.py -w <工作區名稱> [-e <Excel檔案>] [其他選項]
+    ```
+    詳細參數說明請參考 `main.py` 中的 `parse_arguments` 函式。
 
 ## 相似度分數說明
 
@@ -143,8 +137,8 @@ pip install -r requirements.txt
 
 ## 輸出文件
 
-程序會在 `similarity_charts` 目錄下生成以下文件：
-- `similarity_distributions.png`：相似度分數分佈圖
+程序會在 `output` 目錄下生成以下文件：
+- 輸出目錄預設為 `output`，可在 `config.yaml` 中修改。
 - `similarity_boxplot.png`：相似度分數箱型圖
 - `similarity_scatter.png`：兩種相似度指標的散點圖
 - `similarity_summary.txt`：詳細的統計報告
@@ -152,8 +146,8 @@ pip install -r requirements.txt
 ## 注意事項
 
 1. 確保 Excel 文件格式正確
-2. 檢查環境變數配置
-4. 處理大量數據時可能需要較長時間
+2. 檢查 `.env` 中的 API 金鑰是否已設定
+3. 處理大量數據時可能需要較長時間
 
 ## 錯誤處理
 

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA 自動化驗證系統</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ version }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>QA 自動化驗證系統</h1>
+            <p>上傳您的檔案以開始品質分析</p>
+        </header>
+        <main>
+            <form id="upload-form">
+                <div class="form-group">
+                    <label for="workspace">工作區名稱 (Workspace)<span class="required-star">*</span></label>
+                    <input type="text" id="workspace" name="workspace" required placeholder="例如：my_workspace">
+                </div>
+                <div class="form-group">
+                    <label for="excel_file">驗證問答集 (Excel)<span class="required-star">*</span></label>
+                    <input type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
+                </div>
+                <div class="form-group" style="display: none;">
+                    <label for="reference_files">參考文件</label>
+                    <input type="file" id="reference_files" name="reference_files" multiple accept=".pdf">
+                </div>
+
+                <fieldset class="advanced-settings">
+                    <legend id="toggle-advanced">進階設定</legend>
+                    <div id="advanced-options" class="advanced-options-content">
+                        <div class="form-group">
+                            <label for="api_url">AnythingLLM API URL</label>
+                            <input type="text" id="api_url" name="api_url" placeholder="例如：http://localhost:3001" value="{{ default_api_url }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="api_key">API 金鑰 (API Key)</label>
+                            <input type="password" id="api_key" name="api_key" placeholder="留空則使用後端設定" value="{{ default_api_key }}">
+                        </div>
+                        <div class="form-group validation-group">
+                            <button type="button" id="validate-connection-btn" class="btn-secondary">驗證連線</button>
+                            <button type="button" id="save-settings-btn" class="btn-save">儲存設定</button>
+                            <span id="validation-status"></span>
+                        </div>
+                        <div class="form-group" style="display: none;">
+                            <label for="model">LLM 模型</label>
+                            <input type="text" id="model" name="model" placeholder="例如：llama3.1:8b-instruct-fp16">
+                        </div>
+                        <div class="form-group" style="display: none;">
+                            <label for="similarity_threshold">相似度閾值</label>
+                            <input type="number" id="similarity_threshold" name="similarity_threshold" min="0" max="1" step="0.1" placeholder="例如：0.7">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <button type="submit" id="submit-btn" class="submit-btn">
+                    <span class="btn-text">開始驗證</span>
+                    <div class="spinner hidden"></div>
+                </button>
+            </form>
+
+            <div id="status-section" class="hidden">
+                <div id="progress-text">正在初始化...</div>
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                </div>
+                <div id="logs"></div>
+            </div>
+
+            <div id="results-section" class="hidden">
+                 <h2>驗證結果</h2>
+                 <div id="results-container"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for file preview -->
+    <div id="preview-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">檔案預覽</h2>
+                <span class="close-btn">&times;</span>
+            </div>
+            <div id="modal-body">
+                <!-- Preview content will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2024 自動化 QA 系統. All Rights Reserved.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}?v={{ version }}"></script>
+</body>
+</html> 

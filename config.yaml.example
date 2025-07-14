@@ -1,0 +1,51 @@
+# ===============================================================
+# QA 驗證系統 - 組態設定檔
+# ===============================================================
+
+# --- API 設定 ---
+# 這些是連接 AnythingLLM API 所需的設定
+# API_KEY: 可以在 .env 檔案中設定，或直接在此處填寫
+# ANYTHINGLLM_URL: AnythingLLM 服務的 URL
+api:
+  api_key: "YOUR_API_KEY"  # 建議使用 .env 檔案進行設定 (API_KEY=your_key)
+  base_url: "http://localhost:3001" # 建議使用 .env 檔案進行設定 (ANYTHINGLLM_URL=http://your_url)
+
+# --- 工作區設定 ---
+# 這裡的設定會作為建立新工作區時的預設值
+workspace:
+  provider: "ollama"  # 模型提供者 (例如: "ollama", "openai")
+  model: "llama3.1:8b-instruct-fp16" # LLM 模型名稱
+  temp: 0.7             # 溫度參數 (控制回答的隨機性)
+  history_length: 20    # 歷史對話長度
+  system_prompt: "You are a helpful assistant." # 系統提示詞
+  query_refusal_response: "Sorry, I cannot answer that." # 拒絕回答時的訊息
+  chat_mode: "query"    # 聊天模式 (例如: "chat", "query")
+  top_n: 4              # 返回最相關的來源數量
+
+# --- 分析設定 ---
+# 相似度分析相關的設定
+analyzer:
+  # 用於語義相似度計算的 SentenceTransformer 模型
+  model: "paraphrase-multilingual-MiniLM-L12-v2"
+  # 相似度閾值，用於判斷回答是否合格
+  similarity_threshold: 0.7
+
+# --- 檔案與目錄設定 ---
+# 檔案路徑與輸出目錄的設定
+file:
+  # 預設的 Excel 檔案路徑 (可由命令列參數 -e/--excel 覆寫)
+  default_excel: "qa_data.xlsx"
+  # 預設的上傳文件目錄 (可由命令列參數 -d/--directory 覆寫)
+  default_upload_dir: "documents"
+  # 結果輸出目錄 (可由命令列參數 -o/--output 覆寫)
+  output_dir: "output"
+
+# --- 支援的檔案類型 ---
+# 上傳文件時支援的 MIME 類型
+supported_mime_types:
+  "*.txt": "text/plain"
+  "*.pdf": "application/pdf"
+  "*.doc": "application/msword"
+  "*.docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  "*.xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  "*.md": "text/markdown" 
