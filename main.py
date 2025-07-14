@@ -14,7 +14,7 @@ from typing import List, Dict, Optional
 from tqdm import tqdm
 import argparse
 import glob
-
+import re
 from config import Config
 from logger import Logger
 from similarity_analyzer import SimilarityAnalyzer
@@ -214,6 +214,8 @@ class QAVerificationSystem:
                     response = self.send_chat_message(workspace_slug, question)
                     if response and 'textResponse' in response:
                         llm_response = response['textResponse']
+                        # 清理<think></think>之間的文字
+                        llm_response = re.sub(r'<think>.*?</think>', '', llm_response, flags=re.DOTALL)
                         similarity_scores = self.similarity_analyzer.calculate_similarity(
                             llm_response, excel_answer
                         )
