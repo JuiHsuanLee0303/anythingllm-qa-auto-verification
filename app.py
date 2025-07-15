@@ -8,6 +8,7 @@ import time
 import pandas as pd
 import json
 import requests
+import re
 from flask import Flask, render_template, jsonify, request, Response, send_from_directory
 from werkzeug.utils import secure_filename
 from openpyxl import Workbook
@@ -17,7 +18,8 @@ from io import BytesIO
 # 匯入重構後的核心邏輯
 from config import Config
 from logger import get_logger, Logger
-from main import run_verification
+from main import run_verification, run_single_verification
+from excel_handler import ExcelHandler
 
 # --- App State & Initialization ---
 
@@ -81,6 +83,330 @@ def run_verification_threaded(task_id: str, config: Config, logger, args: argpar
         # 發送結束信號
         log_queue.put("<<TASK_DONE>>")
 
+@app.route('/api/verify', methods=['POST'])
+def verify():
+    """處理 Excel 檔案驗證請求"""
+    try:
+        # 檢查必要欄位
+        if 'workspace' not in request.form:
+            return jsonify({"error": "缺少工作區名稱"}), 400
+        
+        if 'excel_file' not in request.files:
+            return jsonify({"error": "缺少 Excel 檔案"}), 400
+        
+        workspace = request.form['workspace']
+        excel_file = request.files['excel_file']
+        
+        if excel_file.filename == '':
+            return jsonify({"error": "未選擇檔案"}), 400
+        
+        # 生成任務 ID
+        task_id = str(uuid.uuid4())
+        
+        # 建立任務目錄
+        task_dir = os.path.join(OUTPUT_FOLDER, task_id)
+        os.makedirs(task_dir, exist_ok=True)
+        
+        # 儲存上傳的檔案
+        filename = secure_filename(excel_file.filename)
+        excel_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_{filename}")
+        excel_file.save(excel_path)
+        
+        # 建立任務狀態追蹤
+        tasks[task_id] = {
+            'status': 'pending',
+            'queue': queue.Queue()
+        }
+        
+        # 載入配置
+        config = Config.load()
+        
+        # 解析進階選項
+        advanced_options = {}
+        if 'api_url' in request.form and request.form['api_url']:
+            advanced_options['api_url'] = request.form['api_url']
+        if 'api_key' in request.form and request.form['api_key']:
+            advanced_options['api_key'] = request.form['api_key']
+        if 'model' in request.form and request.form['model']:
+            advanced_options['model'] = request.form['model']
+        if 'similarity_threshold' in request.form and request.form['similarity_threshold']:
+            advanced_options['similarity_threshold'] = request.form['similarity_threshold']
+        
+        # 建立參數物件
+        args = argparse.Namespace()
+        args.workspace = workspace
+        args.excel = excel_path
+        args.output = task_dir
+        args.verbose = True
+        args.directory = None  # 批次驗證不需要上傳文件目錄
+        
+        # 建立任務專用的 logger
+        task_logger = Logger(task_id, log_queue=tasks[task_id]['queue'])
+        
+        # 在背景執行緒中執行驗證
+        thread = threading.Thread(
+            target=run_verification_threaded,
+            args=(task_id, config, task_logger, args, advanced_options)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        app_logger.info(f"Task {task_id}: 已啟動 Excel 驗證任務")
+        return jsonify({"task_id": task_id, "message": "驗證任務已啟動"})
+        
+    except Exception as e:
+        app_logger.error(f"驗證請求處理錯誤: {e}", exc_info=True)
+        return jsonify({"error": f"處理請求時發生錯誤: {str(e)}"}), 500
+
+@app.route('/api/verify_single', methods=['POST'])
+def verify_single():
+    """處理單筆文字驗證請求"""
+    try:
+        # 檢查必要欄位
+        if 'workspace' not in request.form:
+            return jsonify({"error": "缺少工作區名稱"}), 400
+        
+        if 'single_question' not in request.form or not request.form['single_question'].strip():
+            return jsonify({"error": "缺少問題內容"}), 400
+        
+        if 'single_answer' not in request.form or not request.form['single_answer'].strip():
+            return jsonify({"error": "缺少標準答案"}), 400
+        
+        workspace = request.form['workspace']
+        question = request.form['single_question'].strip()
+        standard_answer = request.form['single_answer'].strip()
+        
+        # 生成任務 ID
+        task_id = str(uuid.uuid4())
+        
+        # 建立任務目錄
+        task_dir = os.path.join(OUTPUT_FOLDER, task_id)
+        os.makedirs(task_dir, exist_ok=True)
+        
+        # 建立任務狀態追蹤
+        tasks[task_id] = {
+            'status': 'pending',
+            'queue': queue.Queue()
+        }
+        
+        # 載入配置
+        config = Config.load()
+        
+        # 解析進階選項
+        advanced_options = {}
+        if 'api_url' in request.form and request.form['api_url']:
+            advanced_options['api_url'] = request.form['api_url']
+        if 'api_key' in request.form and request.form['api_key']:
+            advanced_options['api_key'] = request.form['api_key']
+        if 'model' in request.form and request.form['model']:
+            advanced_options['model'] = request.form['model']
+        if 'similarity_threshold' in request.form and request.form['similarity_threshold']:
+            advanced_options['similarity_threshold'] = request.form['similarity_threshold']
+        
+        # 建立任務專用的 logger
+        task_logger = Logger(task_id, log_queue=tasks[task_id]['queue'])
+        
+        # 在背景執行緒中執行單筆驗證
+        thread = threading.Thread(
+            target=run_single_verification_threaded,
+            args=(task_id, config, task_logger, workspace, question, standard_answer, advanced_options)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        app_logger.info(f"Task {task_id}: 已啟動單筆文字驗證任務")
+        return jsonify({"task_id": task_id, "message": "驗證任務已啟動"})
+        
+    except Exception as e:
+        app_logger.error(f"單筆驗證請求處理錯誤: {e}", exc_info=True)
+        return jsonify({"error": f"處理請求時發生錯誤: {str(e)}"}), 500
+
+def run_single_verification_threaded(task_id: str, config: Config, logger, workspace: str, question: str, standard_answer: str, advanced_options: dict):
+    """在背景執行緒中運行的單筆驗證包裝函式"""
+    log_queue = tasks[task_id]['queue']
+    try:
+        # --- Override config with advanced options from frontend ---
+        if advanced_options.get('api_url'):
+            config.api.base_url = advanced_options['api_url']
+            logger.info(f"使用前端設定的 API URL: {config.api.base_url}")
+        
+        if advanced_options.get('api_key'):
+            config.api.api_key = advanced_options['api_key']
+            logger.info("使用前端提供的 API Key。")
+
+        if advanced_options.get('model'):
+            config.workspace.model = advanced_options['model']
+            logger.info(f"使用前端設定的 LLM 模型: {config.workspace.model}")
+
+        if advanced_options.get('similarity_threshold'):
+            config.analyzer.similarity_threshold = float(advanced_options['similarity_threshold'])
+            logger.info(f"使用前端設定的相似度閾值: {config.analyzer.similarity_threshold}")
+        # --- End of config override ---
+
+        tasks[task_id]['status'] = 'running'
+        logger.info(f"Task {task_id}: 單筆驗證流程開始。")
+        
+        # 建立臨時的 Excel 檔案
+        temp_excel_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_single_verification.xlsx")
+        create_single_verification_excel(temp_excel_path, question, standard_answer)
+        
+        # 建立參數物件
+        args = argparse.Namespace()
+        args.workspace = workspace
+        args.excel = temp_excel_path
+        args.output = os.path.join(OUTPUT_FOLDER, task_id)
+        args.verbose = True
+        
+        # 執行驗證並獲取結果
+        result = run_single_verification_with_result(config, logger, args, question, standard_answer, web_mode=True)
+        
+        # 儲存結果到任務狀態中
+        if result:
+            tasks[task_id]['single_result'] = result
+            tasks[task_id]['status'] = 'completed'
+            logger.info(f"Task {task_id}: 單筆驗證流程成功完成。")
+            logger.info(f"Task {task_id}: 結果已儲存到記憶體中: {result}")
+        else:
+            tasks[task_id]['status'] = 'error'
+            logger.error(f"Task {task_id}: 單筆驗證流程失敗。")
+            
+    except Exception as e:
+        logger.error(f"Task {task_id}: 單筆驗證流程發生錯誤: {e}", exc_info=True)
+        tasks[task_id]['status'] = 'error'
+    finally:
+        # 發送結束信號
+        log_queue.put("<<TASK_DONE>>")
+
+def run_single_verification_with_result(config: Config, logger, args: argparse.Namespace, question: str, standard_answer: str, web_mode: bool = False):
+    """
+    執行單筆文字驗證流程並回傳結果
+    
+    Args:
+        config (Config): 系統配置物件
+        logger (Logger): 日誌記錄器實例
+        args (argparse.Namespace): 命令列參數
+        question (str): 問題內容
+        standard_answer (str): 標準答案
+        web_mode (bool): 是否為 Web 模式，影響日誌和進度條顯示
+        
+    Returns:
+        dict: 包含驗證結果的字典，如果失敗則回傳 None
+    """
+    logger.info("🚀 單筆文字驗證系統啟動")
+    logger.info(f"工作區: {args.workspace}", progress=5, status="初始化...")
+
+    # 直接在這裡實現單筆驗證邏輯，避免 Excel 檔案讀取問題
+    from main import QAVerificationSystem
+    
+    system = QAVerificationSystem(config, logger)
+    
+    # 1. 驗證 API 金鑰
+    if not system.validate_api_key():
+        logger.error("❌ API 金鑰無效，終止程序。")
+        return None
+
+    # 2. 獲取或創建工作區
+    workspace_slug = system.get_workspace_slug(args.workspace)
+    if not workspace_slug:
+        workspace_slug = system.create_workspace(args.workspace)
+    
+    if not workspace_slug:
+        logger.error("❌ 無法獲取或創建工作區，終止程序。")
+        return None
+        
+    logger.info(f"✅ 工作區 '{args.workspace}' (slug: {workspace_slug}) 已就緒", progress=30, status="正在發送問題到 LLM...")
+
+    # 3. 發送問題到 AnythingLLM 獲取回答
+    try:
+        logger.info("正在發送問題到 LLM...", progress=50, status="獲取 LLM 回答...")
+        
+        response = system.send_chat_message(workspace_slug, question)
+        if response and 'textResponse' in response:
+            llm_response = response['textResponse']
+            # 清理<think></think>之間的文字
+            cleaned_llm_response = re.sub(r'<think>.*?</think>', '', llm_response, flags=re.DOTALL).strip()
+            
+            logger.info("正在計算相似度分數...", progress=70, status="計算相似度...")
+            
+            similarity_scores = system.similarity_analyzer.calculate_similarity(
+                cleaned_llm_response, standard_answer
+            )
+            
+            logger.info(f"✅ 相似度分析完成", progress=80, status="生成報告...")
+            
+            # 4. 生成總結圖表
+            output_dir = args.output
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                
+            try:
+                system.similarity_analyzer.generate_charts(
+                    [similarity_scores], 
+                    output_dir
+                )
+                logger.info(f"📊 分析報告已生成於 '{output_dir}' 目錄。")
+                
+            except Exception as e:
+                logger.error(f"❌ 生成圖表時發生錯誤: {e}", exc_info=True)
+            
+            # 5. 儲存包含結果的 Excel 檔案（保持原有功能）
+            output_excel_path = os.path.join(output_dir, os.path.basename(args.excel))
+            try:
+                excel_handler = ExcelHandler(args.excel, logger)
+                # 將結果寫入 Excel
+                excel_handler.write_llm_response("單筆驗證", 0, cleaned_llm_response)
+                excel_handler.write_similarity_scores("單筆驗證", 0, similarity_scores)
+                excel_handler.save_workbook(output_excel_path)
+                logger.info(f"💾 更新後的 Excel 檔案已儲存至: {output_excel_path}", progress=100, status="完成")
+            except Exception as e:
+                logger.error(f"❌ 儲存 Excel 檔案時發生錯誤: {e}", exc_info=True)
+
+            logger.info("🎉 單筆文字驗證流程全部完成！")
+            
+            # 直接回傳結果，不從 Excel 檔案讀取
+            return {
+                "question": question,
+                "standard_answer": standard_answer,
+                "llm_response": cleaned_llm_response,
+                "similarity_scores": similarity_scores
+            }
+            
+        else:
+            logger.error("❌ 無法從 LLM 獲取回答")
+            return None
+            
+    except Exception as e:
+        logger.error(f"❌ 相似度分析時發生錯誤: {e}", exc_info=True)
+        return None
+
+def create_single_verification_excel(excel_path: str, question: str, standard_answer: str):
+    """建立單筆驗證用的 Excel 檔案"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "單筆驗證"
+    
+    # 設定標題 - 包含所有欄位
+    headers = ['問題', '標準答案', 'LLM 回答', 'BERT Score', '餘弦相似度']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    
+    # 設定資料
+    ws.cell(row=2, column=1, value=question)
+    ws.cell(row=2, column=2, value=standard_answer)
+    
+    # 調整欄寬
+    for col in range(1, 6):  # 5 個欄位
+        ws.column_dimensions[chr(64 + col)].width = 40
+    
+    # 儲存檔案
+    wb.save(excel_path)
+
 # --- Routes ---
 
 @app.route('/')
@@ -133,6 +459,76 @@ def get_results(task_id: str):
         files.append(filename)
     
     return jsonify(files)
+
+@app.route('/api/single_result/<task_id>')
+def get_single_result(task_id: str):
+    """獲取單筆驗證的詳細結果"""
+    try:
+        # 檢查任務是否存在
+        if task_id not in tasks:
+            return jsonify({"error": "找不到指定的任務"}), 404
+        
+        # 直接從任務狀態中獲取結果
+        if 'single_result' not in tasks[task_id]:
+            app_logger.error(f"Task {task_id}: 任務狀態中沒有 single_result")
+            return jsonify({"error": "任務尚未完成或結果不可用"}), 404
+        
+        single_result = tasks[task_id]['single_result']
+        app_logger.info(f"Task {task_id}: 從任務狀態中獲取到結果: {single_result}")
+        
+        # 構建回傳結果
+        result = {
+            "task_id": task_id,
+            "question": single_result.get("question", ""),
+            "standard_answer": single_result.get("standard_answer", ""),
+            "llm_response": single_result.get("llm_response", ""),
+            "similarity_scores": single_result.get("similarity_scores", {
+                "bert_score": 0,
+                "cosine_similarity": 0
+            })
+        }
+        
+        app_logger.info(f"Task {task_id}: 回傳給前端的結果: {result}")
+        return jsonify(result)
+        
+    except Exception as e:
+        app_logger.error(f"獲取單筆結果時發生錯誤: {e}", exc_info=True)
+        return jsonify({"error": f"獲取結果時發生錯誤: {str(e)}"}), 500
+
+@app.route('/api/download_single_result/<task_id>')
+def download_single_result(task_id: str):
+    """下載單筆驗證的詳細報告"""
+    try:
+        # 檢查任務是否存在
+        if task_id not in tasks:
+            return jsonify({"error": "找不到指定的任務"}), 404
+        
+        # 讀取 Excel 檔案
+        # 先嘗試讀取原始檔案名稱
+        excel_path = os.path.join(OUTPUT_FOLDER, task_id, f"{task_id}_single_verification.xlsx")
+        if not os.path.exists(excel_path):
+            # 如果找不到，嘗試讀取其他可能的檔案名稱
+            task_dir = os.path.join(OUTPUT_FOLDER, task_id)
+            if os.path.exists(task_dir):
+                excel_files = [f for f in os.listdir(task_dir) if f.endswith('.xlsx')]
+                if excel_files:
+                    excel_path = os.path.join(task_dir, excel_files[0])
+                else:
+                    return jsonify({"error": "找不到結果檔案"}), 404
+            else:
+                return jsonify({"error": "找不到結果檔案"}), 404
+        
+        # 回傳 Excel 檔案供下載
+        return send_from_directory(
+            os.path.dirname(excel_path),
+            os.path.basename(excel_path),
+            as_attachment=True,
+            download_name=f"single_verification_result_{task_id}.xlsx"
+        )
+        
+    except Exception as e:
+        app_logger.error(f"下載單筆結果時發生錯誤: {e}", exc_info=True)
+        return jsonify({"error": f"下載結果時發生錯誤: {str(e)}"}), 500
 
 @app.route('/api/preview/<task_id>/<path:filename>')
 def preview_file(task_id: str, filename: str):
@@ -269,98 +665,6 @@ def download_example():
         app_logger.error(f"生成範例檔案時發生錯誤: {e}", exc_info=True)
         return jsonify({"error": "生成範例檔案時發生錯誤"}), 500
 
-
-@app.route('/api/verify', methods=['POST'])
-def verify():
-    """
-    API 端點，用於啟動 QA 驗證流程。
-    """
-    app_logger.info("--- /api/verify 請求處理開始 ---")
-    app_logger.info(f"收到的表單欄位: {list(request.form.keys())}")
-    app_logger.info(f"收到的檔案: {list(request.files.keys())}")
-
-    workspace = request.form.get('workspace')
-    if not workspace:
-        app_logger.warning("驗證失敗：工作區名稱為空。")
-        return jsonify({"error": "工作區名稱為必要欄位"}), 400
-    app_logger.info("驗證通過：工作區名稱存在。")
-
-    if 'excel_file' not in request.files:
-        app_logger.warning("驗證失敗：請求中找不到 'excel_file'。")
-        return jsonify({"error": "請求中未包含 Excel 檔案"}), 400
-    app_logger.info("驗證通過：'excel_file' 欄位存在。")
-
-    excel_file = request.files['excel_file']
-    app_logger.info(f"收到的 Excel 檔案物件: {excel_file}")
-    app_logger.info(f"收到的 Excel 檔案名稱: '{excel_file.filename}'")
-
-    if excel_file.filename == '':
-        app_logger.warning("驗證失敗：Excel 檔案名稱為空字串。")
-        return jsonify({"error": "未選擇 Excel 檔案"}), 400
-    app_logger.info("驗證通過：Excel 檔案名稱不為空。")
-
-    # --- 儲存上傳的檔案 ---
-    task_id = str(uuid.uuid4())
-    session_folder = os.path.join(app.config['UPLOAD_FOLDER'], task_id)
-    os.makedirs(session_folder, exist_ok=True)
-
-    excel_path = os.path.join(session_folder, secure_filename(excel_file.filename))
-    excel_file.save(excel_path)
-    
-    log_path = os.path.join(session_folder, 'task.log')
-
-    # (Zip file handling logic can be added here)
-    doc_dir_path = None
-
-    # --- 執行驗證 ---
-    try:
-        config = Config.load()
-        log_queue = queue.Queue()
-        logger = get_logger(
-            name=f"task-{task_id}", 
-            session_log_file=log_path, 
-            log_queue=log_queue, 
-            force_new=True
-        )
-
-        # 讀取進階設定
-        advanced_options = {
-            'api_url': request.form.get('api_url'),
-            'api_key': request.form.get('api_key'),
-            'model': request.form.get('model'),
-            'similarity_threshold': request.form.get('similarity_threshold')
-        }
-
-        # 建立一個與 parse_arguments 輸出相容的命名空間物件
-        args = argparse.Namespace(
-            workspace=workspace,
-            excel=excel_path,
-            directory=doc_dir_path, # 待實現
-            output=os.path.join('output', task_id), # 為每個 session 建立獨立的輸出
-            # Allow potential overrides from form later
-            model=advanced_options.get('model') or config.workspace.model,
-            similarityThreshold=advanced_options.get('similarity_threshold') or config.analyzer.similarity_threshold
-        )
-        
-        tasks[task_id] = {'status': 'pending', 'log_path': log_path, 'queue': log_queue}
-        
-        # 在背景執行緒中啟動驗證
-        thread = threading.Thread(
-            target=run_verification_threaded,
-            args=(task_id, config, logger, args, advanced_options)
-        )
-        thread.start()
-
-        return jsonify({
-            "message": "驗證流程已啟動",
-            "task_id": task_id
-        })
-
-    except Exception as e:
-        # 在實際應用中，應使用 logger 記錄錯誤
-        tasks[task_id]['status'] = 'error'
-        print(f"啟動驗證時發生錯誤: {e}")
-        return jsonify({"error": "伺服器內部錯誤"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001) 

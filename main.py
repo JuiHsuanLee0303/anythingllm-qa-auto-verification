@@ -337,6 +337,92 @@ def run_verification(config: Config, logger: Logger, args: argparse.Namespace, w
 
     logger.info("🎉 QA 驗證流程全部完成！")
 
+def run_single_verification(config: Config, logger: Logger, args: argparse.Namespace, question: str, standard_answer: str, web_mode: bool = False):
+    """
+    執行單筆文字驗證流程
+    
+    Args:
+        config (Config): 系統配置物件
+        logger (Logger): 日誌記錄器實例
+        args (argparse.Namespace): 命令列參數
+        question (str): 問題內容
+        standard_answer (str): 標準答案
+        web_mode (bool): 是否為 Web 模式，影響日誌和進度條顯示
+    """
+    logger.info("🚀 單筆文字驗證系統啟動")
+    logger.info(f"工作區: {args.workspace}", progress=5, status="初始化...")
+
+    system = QAVerificationSystem(config, logger)
+    
+    # 1. 驗證 API 金鑰
+    if not system.validate_api_key():
+        logger.error("❌ API 金鑰無效，終止程序。")
+        return
+
+    # 2. 獲取或創建工作區
+    workspace_slug = system.get_workspace_slug(args.workspace)
+    if not workspace_slug:
+        workspace_slug = system.create_workspace(args.workspace)
+    
+    if not workspace_slug:
+        logger.error("❌ 無法獲取或創建工作區，終止程序。")
+        return
+        
+    logger.info(f"✅ 工作區 '{args.workspace}' (slug: {workspace_slug}) 已就緒", progress=30, status="正在發送問題到 LLM...")
+
+    # 3. 發送問題到 AnythingLLM 獲取回答
+    try:
+        logger.info("正在發送問題到 LLM...", progress=50, status="獲取 LLM 回答...")
+        
+        response = system.send_chat_message(workspace_slug, question)
+        if response and 'textResponse' in response:
+            llm_response = response['textResponse']
+            # 清理<think></think>之間的文字
+            cleaned_llm_response = re.sub(r'<think>.*?</think>', '', llm_response, flags=re.DOTALL).strip()
+            
+            logger.info("正在計算相似度分數...", progress=70, status="計算相似度...")
+            
+            similarity_scores = system.similarity_analyzer.calculate_similarity(
+                cleaned_llm_response, standard_answer
+            )
+            
+            logger.info(f"✅ 相似度分析完成", progress=80, status="生成報告...")
+            
+            # 4. 生成總結圖表
+            output_dir = args.output
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                
+            try:
+                system.similarity_analyzer.generate_charts(
+                    [similarity_scores], 
+                    output_dir
+                )
+                logger.info(f"📊 分析報告已生成於 '{output_dir}' 目錄。")
+                
+            except Exception as e:
+                logger.error(f"❌ 生成圖表時發生錯誤: {e}", exc_info=True)
+            
+            # 5. 儲存包含結果的 Excel 檔案
+            output_excel_path = os.path.join(output_dir, os.path.basename(args.excel))
+            try:
+                excel_handler = ExcelHandler(args.excel, logger)
+                # 將結果寫入 Excel
+                excel_handler.write_llm_response("單筆驗證", 0, cleaned_llm_response)
+                excel_handler.write_similarity_scores("單筆驗證", 0, similarity_scores)
+                excel_handler.save_workbook(output_excel_path)
+                logger.info(f"💾 更新後的 Excel 檔案已儲存至: {output_excel_path}", progress=100, status="完成")
+            except Exception as e:
+                logger.error(f"❌ 儲存 Excel 檔案時發生錯誤: {e}", exc_info=True)
+
+            logger.info("🎉 單筆文字驗證流程全部完成！")
+            
+        else:
+            logger.error("❌ 無法從 LLM 獲取回答")
+            
+    except Exception as e:
+        logger.error(f"❌ 相似度分析時發生錯誤: {e}", exc_info=True)
+
 def parse_arguments(config: Config):
     """
     解析命令列參數，並允許覆寫組態檔中的設定。

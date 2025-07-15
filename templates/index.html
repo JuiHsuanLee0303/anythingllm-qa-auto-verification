@@ -6,11 +6,21 @@
     <title>QA 自動化驗證系統</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ version }}">
 </head>
-<body>
+<body data-theme="light">
     <div class="container">
         <header>
-            <h1>QA 自動化驗證系統</h1>
-            <p>上傳您的檔案以開始品質分析</p>
+            <div class="header-content">
+                <div class="header-text">
+                    <h1>QA 自動化驗證系統</h1>
+                    <p>上傳您的檔案以開始品質分析</p>
+                </div>
+                <div class="theme-toggle">
+                    <button id="theme-toggle-btn" class="theme-btn" aria-label="切換主題">
+                        <span class="theme-icon light-icon">☀️</span>
+                        <span class="theme-icon dark-icon">🌙</span>
+                    </button>
+                </div>
+            </div>
         </header>
         <main>
             <form id="upload-form">
@@ -18,90 +28,119 @@
                     <label for="workspace">工作區名稱 (Workspace)<span class="required-star">*</span></label>
                     <input type="text" id="workspace" name="workspace" required placeholder="例如：my_workspace">
                 </div>
+                
+                <!-- 驗證模式選擇 -->
                 <div class="form-group">
-                    <label for="excel_file">驗證問答集 (Excel)<span class="required-star">*</span></label>
-                    <input type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
+                    <label>驗證模式</label>
+                    <div class="mode-selector">
+                        <button type="button" id="excel-mode-btn" class="mode-btn active" data-mode="excel">
+                            📊 Excel 批次驗證
+                        </button>
+                        <button type="button" id="single-mode-btn" class="mode-btn" data-mode="single">
+                            ✏️ 單筆文字驗證
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="excel-format-help">
-                    <button type="button" id="toggle-excel-help" class="help-btn">📋 Excel 格式說明</button>
-                    <div id="excel-help-content" class="help-content">
-                        <div class="help-section">
-                            <h3>📝 Excel 檔案格式說明</h3>
-                            <p>請準備一個 Excel 檔案 (.xlsx)，包含以下必要欄位：</p>
-                            
-                            <div class="format-table">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>欄位名稱</th>
-                                            <th>說明</th>
-                                            <th>是否必填</th>
-                                            <th>範例</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td><strong>問題</strong></td>
-                                            <td>要驗證的問題內容</td>
-                                            <td><span class="required">必填</span></td>
-                                            <td>什麼是機器學習？</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>標準答案</strong></td>
-                                            <td>預期的標準答案</td>
-                                            <td><span class="required">必填</span></td>
-                                            <td>機器學習是人工智慧的一個分支...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <h4>📊 範例表格</h4>
-                                <div class="example-table">
+                <!-- Excel 模式 -->
+                <div id="excel-mode" class="mode-content active">
+                    <div class="form-group">
+                        <label for="excel_file">驗證問答集 (Excel)<span class="required-star">*</span></label>
+                        <input type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
+                    </div>
+                    
+                    <div class="excel-format-help">
+                        <button type="button" id="toggle-excel-help" class="help-btn">📋 Excel 格式說明</button>
+                        <div id="excel-help-content" class="help-content">
+                            <div class="help-section">
+                                <h3>📝 Excel 檔案格式說明</h3>
+                                <p>請準備一個 Excel 檔案 (.xlsx)，包含以下必要欄位：</p>
+                                
+                                <div class="format-table">
                                     <table>
                                         <thead>
                                             <tr>
-                                                <th>問題</th>
-                                                <th>標準答案</th>
+                                                <th>欄位名稱</th>
+                                                <th>說明</th>
+                                                <th>是否必填</th>
+                                                <th>範例</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td>什麼是 Python？</td>
-                                                <td>Python 是一種高級程式語言，以其簡潔的語法和強大的功能而聞名。它支援多種程式設計範式，包括程序式、物件導向和函數式程式設計。</td>
+                                                <td><strong>問題</strong></td>
+                                                <td>要驗證的問題內容</td>
+                                                <td><span class="required">必填</span></td>
+                                                <td>什麼是機器學習？</td>
                                             </tr>
                                             <tr>
-                                                <td>機器學習的主要類型有哪些？</td>
-                                                <td>機器學習主要分為三種類型：監督式學習、非監督式學習和強化學習。監督式學習使用標記的訓練數據，非監督式學習處理未標記的數據，強化學習通過與環境互動來學習。</td>
-                                            </tr>
-                                            <tr>
-                                                <td>什麼是深度學習？</td>
-                                                <td>深度學習是機器學習的一個子集，使用多層神經網路來學習數據的複雜模式。它能夠自動提取特徵，並在圖像識別、自然語言處理等領域表現出色。</td>
+                                                <td><strong>標準答案</strong></td>
+                                                <td>預期的標準答案</td>
+                                                <td><span class="required">必填</span></td>
+                                                <td>機器學習是人工智慧的一個分支...</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
-                            
-                            <div class="download-section">
-                                <h4>📥 下載範例檔案</h4>
-                                <p>點擊下方按鈕下載範例 Excel 檔案，您可以參考此格式來準備您的問答集：</p>
-                                <button type="button" id="download-example" class="btn-download-example">📄 下載範例 Excel 檔案</button>
-                            </div>
-                            
-                            <div class="tips-section">
-                                <h4>💡 使用提示</h4>
-                                <ul>
-                                    <li>確保問題和標準答案欄位都有內容</li>
-                                    <li>標準答案建議包含完整的解釋，這樣能獲得更好的相似度評估</li>
-                                    <li>可以根據需要添加多個工作表，系統會處理所有工作表</li>
-                                    <li>檔案大小建議不超過 10MB</li>
-                                    <li>支援的檔案格式：.xlsx</li>
-                                </ul>
+                                
+                                <div class="example-section">
+                                    <h4>📊 範例表格</h4>
+                                    <div class="example-table">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>問題</th>
+                                                    <th>標準答案</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>什麼是 Python？</td>
+                                                    <td>Python 是一種高級程式語言，以其簡潔的語法和強大的功能而聞名。它支援多種程式設計範式，包括程序式、物件導向和函數式程式設計。</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>機器學習的主要類型有哪些？</td>
+                                                    <td>機器學習主要分為三種類型：監督式學習、非監督式學習和強化學習。監督式學習使用標記的訓練數據，非監督式學習處理未標記的數據，強化學習通過與環境互動來學習。</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>什麼是深度學習？</td>
+                                                    <td>深度學習是機器學習的一個子集，使用多層神經網路來學習數據的複雜模式。它能夠自動提取特徵，並在圖像識別、自然語言處理等領域表現出色。</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <div class="download-section">
+                                    <h4>📥 下載範例檔案</h4>
+                                    <p>點擊下方按鈕下載範例 Excel 檔案，您可以參考此格式來準備您的問答集：</p>
+                                    <button type="button" id="download-example" class="btn btn-success">📄 下載範例 Excel 檔案</button>
+                                </div>
+                                
+                                <div class="tips-section">
+                                    <h4>💡 使用提示</h4>
+                                    <ul>
+                                        <li>確保問題和標準答案欄位都有內容</li>
+                                        <li>標準答案建議包含完整的解釋，這樣能獲得更好的相似度評估</li>
+                                        <li>可以根據需要添加多個工作表，系統會處理所有工作表</li>
+                                        <li>檔案大小建議不超過 10MB</li>
+                                        <li>支援的檔案格式：.xlsx</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- 單筆文字模式 -->
+                <div id="single-mode" class="mode-content">
+                    <div class="form-group">
+                        <label for="single_question">問題<span class="required-star">*</span></label>
+                        <textarea id="single_question" name="single_question" rows="3" placeholder="請輸入要驗證的問題..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="single_answer">標準答案<span class="required-star">*</span></label>
+                        <textarea id="single_answer" name="single_answer" rows="5" placeholder="請輸入預期的標準答案..." required></textarea>
                     </div>
                 </div>
                 
@@ -122,8 +161,8 @@
                             <input type="password" id="api_key" name="api_key" placeholder="留空則使用後端設定" value="{{ default_api_key }}">
                         </div>
                         <div class="form-group validation-group">
-                            <button type="button" id="validate-connection-btn" class="btn-secondary">驗證連線</button>
-                            <button type="button" id="save-settings-btn" class="btn-save">儲存設定</button>
+                            <button type="button" id="validate-connection-btn" class="btn btn-secondary">驗證連線</button>
+                            <button type="button" id="save-settings-btn" class="btn btn-success">儲存設定</button>
                             <span id="validation-status"></span>
                         </div>
                         <div class="form-group" style="display: none;">
@@ -172,7 +211,7 @@
     </div>
     
     <footer>
-        <p>&copy; 2024 自動化 QA 系統. All Rights Reserved.</p>
+        <p>&copy; 2025 安盛資訊. All Rights Reserved.</p>
     </footer>
 
     <script src="{{ url_for('static', filename='script.js') }}?v={{ version }}"></script>

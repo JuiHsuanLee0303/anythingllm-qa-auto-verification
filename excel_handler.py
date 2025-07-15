@@ -95,8 +95,13 @@ class ExcelHandler:
         """
         try:
             sheet = self.workbook[sheet_name]
-            sheet.cell(row=row_index + 1, column=4, value=similarity_scores['bert_score'])
-            sheet.cell(row=row_index + 1, column=5, value=similarity_scores['cosine_similarity'])
+            
+            # 寫入所有可用的相似度分數
+            col = 4  # 從第4欄開始
+            for key, value in similarity_scores.items():
+                sheet.cell(row=row_index + 1, column=col, value=value)
+                col += 1
+                
         except Exception as e:
             self.logger.error(f"❌ 寫入相似度分數時發生錯誤: {e}", exc_info=True)
 

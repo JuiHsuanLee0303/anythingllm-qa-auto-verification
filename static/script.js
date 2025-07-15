@@ -32,7 +32,68 @@ document.addEventListener('DOMContentLoaded', () => {
     const excelHelpContent = document.getElementById('excel-help-content');
     const downloadExampleBtn = document.getElementById('download-example');
 
+    // Theme toggle elements
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+
+    // Mode selector elements
+    const excelModeBtn = document.getElementById('excel-mode-btn');
+    const singleModeBtn = document.getElementById('single-mode-btn');
+    const excelMode = document.getElementById('excel-mode');
+    const singleMode = document.getElementById('single-mode');
+
     let eventSource;
+
+    // --- Theme Functions ---
+
+    function loadTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        document.body.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        // Add a subtle animation effect
+        document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+        setTimeout(() => {
+            document.body.style.transition = '';
+        }, 300);
+    }
+
+    // --- Mode Functions ---
+
+    function switchMode(mode) {
+        // Update button states
+        excelModeBtn.classList.toggle('active', mode === 'excel');
+        singleModeBtn.classList.toggle('active', mode === 'single');
+        
+        // Update content visibility
+        excelMode.classList.toggle('active', mode === 'excel');
+        singleMode.classList.toggle('active', mode === 'single');
+        
+        // Update form validation
+        updateFormValidation(mode);
+    }
+
+    function updateFormValidation(mode) {
+        const excelFile = document.getElementById('excel_file');
+        const singleQuestion = document.getElementById('single_question');
+        const singleAnswer = document.getElementById('single_answer');
+        
+        if (mode === 'excel') {
+            excelFile.required = true;
+            singleQuestion.required = false;
+            singleAnswer.required = false;
+        } else {
+            excelFile.required = false;
+            singleQuestion.required = true;
+            singleAnswer.required = true;
+        }
+    }
 
     // --- Functions ---
 
@@ -97,8 +158,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners ---
 
-    // Load settings from localStorage when the page loads
+    // Load theme and settings from localStorage when the page loads
+    loadTheme();
     loadSettings();
+    
+    // Initialize form validation based on current mode
+    const currentMode = excelModeBtn.classList.contains('active') ? 'excel' : 'single';
+    updateFormValidation(currentMode);
+
+    // Theme toggle event listener
+    themeToggleBtn.addEventListener('click', toggleTheme);
+
+    // Mode selector event listeners
+    excelModeBtn.addEventListener('click', () => switchMode('excel'));
+    singleModeBtn.addEventListener('click', () => switchMode('single'));
 
     toggleAdvancedBtn.addEventListener('click', () => {
         const fieldset = toggleAdvancedBtn.parentElement;
@@ -172,8 +245,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (model) formData.append('model', model);
         if (similarityThreshold) formData.append('similarity_threshold', similarityThreshold);
 
+        // Determine the current mode and set the appropriate endpoint
+        const currentMode = excelModeBtn.classList.contains('active') ? 'excel' : 'single';
+        const endpoint = currentMode === 'excel' ? '/api/verify' : '/api/verify_single';
+
         try {
-            const response = await fetch('/api/verify', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 body: formData
             });
@@ -265,11 +342,108 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('無法獲取結果檔案列表。');
             }
             const files = await response.json();
-            displayResults(files, taskId);
+            
+            // 檢查是否為單筆驗證結果
+            const isSingleVerification = files.some(file => file.includes('single_verification'));
+            if (isSingleVerification) {
+                // 獲取單筆驗證的詳細結果
+                const singleResultResponse = await fetch(`/api/single_result/${taskId}`);
+                if (singleResultResponse.ok) {
+                    const singleResult = await singleResultResponse.json();
+                    displaySingleResult(singleResult);
+                } else {
+                    displayResults(files, taskId);
+                }
+            } else {
+                displayResults(files, taskId);
+            }
         } catch (error) {
             console.error('Fetch results error:', error);
             showError(`獲取結果時發生錯誤: ${error.message}`);
         }
+    }
+
+    function displaySingleResult(result) {
+        resultsContainer.innerHTML = ''; // Clear previous results
+        
+        const resultCard = document.createElement('div');
+        resultCard.className = 'single-result-card';
+        
+        const similarityScore = result.similarity_scores?.cosine_similarity || 0;
+        const similarityPercentage = Math.round(similarityScore * 100);
+        
+        // 根據相似度分數決定顏色和狀態
+        let statusClass = 'low';
+        let statusText = '相似度較低';
+        if (similarityScore >= 0.8) {
+            statusClass = 'high';
+            statusText = '相似度很高';
+        } else if (similarityScore >= 0.6) {
+            statusClass = 'medium';
+            statusText = '相似度中等';
+        }
+        
+        resultCard.innerHTML = `
+            <div class="single-result-header">
+                <h3>📊 單筆驗證結果</h3>
+                <div class="similarity-score ${statusClass}">
+                    <div class="score-circle" style="--score: ${similarityScore}">
+                        <span class="score-number">${similarityPercentage}%</span>
+                        <span class="score-label">相似度</span>
+                    </div>
+                    <div class="score-status">${statusText}</div>
+                </div>
+            </div>
+            
+            <div class="result-content">
+                <div class="result-section">
+                    <h4>❓ 問題</h4>
+                    <div class="content-box question-box">
+                        ${result.question || '未提供問題'}
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h4>✅ 標準答案</h4>
+                    <div class="content-box standard-answer-box">
+                        ${result.standard_answer || '未提供標準答案'}
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h4>🤖 LLM 回答</h4>
+                    <div class="content-box llm-answer-box">
+                        ${result.llm_response || '未獲取到 LLM 回答'}
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h4>📈 詳細分數</h4>
+                    <div class="scores-grid">
+                        <div class="score-item">
+                            <span class="score-name">BERT Score</span>
+                            <span class="score-value">${(result.similarity_scores?.bert_score || 0).toFixed(4)}</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="score-name">餘弦相似度</span>
+                            <span class="score-value">${(result.similarity_scores?.cosine_similarity || 0).toFixed(4)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-actions">
+                <button type="button" class="btn btn-primary" onclick="downloadSingleResult('${result.task_id}')">
+                    📄 下載詳細報告
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                    🔄 重新驗證
+                </button>
+            </div>
+        `;
+        
+        resultsContainer.appendChild(resultCard);
+        resultsSection.classList.remove('hidden');
     }
 
     function displayResults(files, taskId) {
@@ -284,8 +458,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.innerHTML = `
                     <div class="file-name">${fileName}</div>
                     <div class="actions">
-                        <a href="/outputs/${taskId}/${fileName}" download class="btn btn-download">下載</a>
-                        <button class="btn btn-preview" data-task-id="${taskId}" data-filename="${fileName}">預覽</button>
+                        <a href="/outputs/${taskId}/${fileName}" download class="btn btn-primary">下載</a>
+                        <button class="btn btn-secondary" data-task-id="${taskId}" data-filename="${fileName}">預覽</button>
                     </div>
                 `;
                 resultsContainer.appendChild(card);
@@ -296,17 +470,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showError(message) {
         progressText.textContent = `錯誤: ${message}`;
-        progressText.style.color = 'var(--error-color)';
+        progressText.style.color = 'var(--error)';
         statusSection.classList.remove('hidden');
         progressBarFill.style.width = '100%';
-        progressBarFill.style.backgroundColor = 'var(--error-color)';
+        progressBarFill.style.backgroundColor = 'var(--error)';
     }
 
     // --- Modal Logic ---
 
     // Open modal
     resultsContainer.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('btn-preview')) {
+        if (e.target.classList.contains('btn-secondary') && e.target.textContent === '預覽') {
             const taskId = e.target.dataset.taskId;
             const filename = e.target.dataset.filename;
             
@@ -341,4 +515,38 @@ document.addEventListener('DOMContentLoaded', () => {
             hideModal();
         }
     });
-}); 
+});
+
+// 全域函數定義
+function downloadSingleResult(taskId) {
+    window.open(`/api/download_single_result/${taskId}`, '_blank');
+}
+
+function resetForm() {
+    // 重置表單
+    document.getElementById('upload-form').reset();
+    
+    // 隱藏結果區域
+    const resultsSection = document.getElementById('results-section');
+    const statusSection = document.getElementById('status-section');
+    if (resultsSection) resultsSection.classList.add('hidden');
+    if (statusSection) statusSection.classList.add('hidden');
+    
+    // 重置按鈕狀態
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = submitBtn?.querySelector('.btn-text');
+    const spinner = submitBtn?.querySelector('.spinner');
+    
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        if (btnText) btnText.classList.remove('hidden');
+        if (spinner) spinner.classList.add('hidden');
+    }
+    
+    // 清除驗證狀態
+    const validationStatus = document.getElementById('validation-status');
+    if (validationStatus) {
+        validationStatus.textContent = '';
+        validationStatus.className = '';
+    }
+} 
