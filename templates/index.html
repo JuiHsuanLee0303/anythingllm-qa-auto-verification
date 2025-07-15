@@ -24,14 +24,51 @@
         </header>
         <main>
             <form id="upload-form">
+                <!-- 第一步：進階設定 -->
+                <fieldset class="advanced-settings">
+                    <legend id="toggle-advanced">步驟 1：AnythingLLM 連線設定</legend>
+                    <div id="advanced-options" class="advanced-options-content">
+                        <div class="form-group">
+                            <label for="api_url">AnythingLLM API URL<span class="required-star">*</span></label>
+                            <input type="text" id="api_url" name="api_url" placeholder="例如：http://localhost:3001" value="{{ default_api_url }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="api_key">API 金鑰 (API Key)<span class="required-star">*</span></label>
+                            <input type="password" id="api_key" name="api_key" placeholder="請輸入您的 API 金鑰" value="{{ default_api_key }}" required>
+                        </div>
+                        <div class="form-group validation-group">
+                            <button type="button" id="validate-connection-btn" class="btn btn-primary">🔗 驗證連線</button>
+                            <button type="button" id="save-settings-btn" class="btn btn-success">💾 儲存設定</button>
+                            <span id="validation-status"></span>
+                        </div>
+                        <div class="form-group" style="display: none;">
+                            <label for="model">LLM 模型</label>
+                            <input type="text" id="model" name="model" placeholder="例如：llama3.1:8b-instruct-fp16">
+                        </div>
+                        <div class="form-group" style="display: none;">
+                            <label for="similarity_threshold">相似度閾值</label>
+                            <input type="number" id="similarity_threshold" name="similarity_threshold" min="0" max="1" step="0.1" placeholder="例如：0.7">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 第二步：工作區選擇 -->
                 <div class="form-group">
-                    <label for="workspace">工作區名稱 (Workspace)<span class="required-star">*</span></label>
-                    <input type="text" id="workspace" name="workspace" required placeholder="例如：my_workspace">
+                    <label for="workspace">步驟 2：選擇工作區<span class="required-star">*</span></label>
+                    <div class="workspace-selector">
+                        <select id="workspace" name="workspace" required>
+                            <option value="">請先驗證連線以載入工作區列表</option>
+                        </select>
+                        <button type="button" id="refresh-workspaces-btn" class="btn btn-secondary" disabled>
+                            🔄 重新載入
+                        </button>
+                    </div>
+                    <small class="form-help">請先完成步驟 1 的連線驗證，系統會自動載入可用的工作區列表</small>
                 </div>
                 
-                <!-- 驗證模式選擇 -->
+                <!-- 第三步：驗證模式選擇 -->
                 <div class="form-group">
-                    <label>驗證模式</label>
+                    <label>步驟 3：選擇驗證模式</label>
                     <div class="mode-selector">
                         <button type="button" id="excel-mode-btn" class="mode-btn active" data-mode="excel">
                             📊 Excel 批次驗證
@@ -42,10 +79,11 @@
                     </div>
                 </div>
                 
+                <!-- 第四步：檔案上傳/內容輸入 -->
                 <!-- Excel 模式 -->
                 <div id="excel-mode" class="mode-content active">
                     <div class="form-group">
-                        <label for="excel_file">驗證問答集 (Excel)<span class="required-star">*</span></label>
+                        <label for="excel_file">步驟 4：上傳驗證問答集 (Excel)<span class="required-star">*</span></label>
                         <input type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
                     </div>
                     
@@ -135,11 +173,11 @@
                 <!-- 單筆文字模式 -->
                 <div id="single-mode" class="mode-content">
                     <div class="form-group">
-                        <label for="single_question">問題<span class="required-star">*</span></label>
+                        <label for="single_question">步驟 4：輸入問題<span class="required-star">*</span></label>
                         <textarea id="single_question" name="single_question" rows="3" placeholder="請輸入要驗證的問題..." required></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="single_answer">標準答案<span class="required-star">*</span></label>
+                        <label for="single_answer">步驟 4：輸入標準答案<span class="required-star">*</span></label>
                         <textarea id="single_answer" name="single_answer" rows="5" placeholder="請輸入預期的標準答案..." required></textarea>
                     </div>
                 </div>
@@ -149,37 +187,13 @@
                     <input type="file" id="reference_files" name="reference_files" multiple accept=".pdf">
                 </div>
 
-                <fieldset class="advanced-settings">
-                    <legend id="toggle-advanced">進階設定</legend>
-                    <div id="advanced-options" class="advanced-options-content">
-                        <div class="form-group">
-                            <label for="api_url">AnythingLLM API URL</label>
-                            <input type="text" id="api_url" name="api_url" placeholder="例如：http://localhost:3001" value="{{ default_api_url }}">
-                        </div>
-                        <div class="form-group">
-                            <label for="api_key">API 金鑰 (API Key)</label>
-                            <input type="password" id="api_key" name="api_key" placeholder="留空則使用後端設定" value="{{ default_api_key }}">
-                        </div>
-                        <div class="form-group validation-group">
-                            <button type="button" id="validate-connection-btn" class="btn btn-secondary">驗證連線</button>
-                            <button type="button" id="save-settings-btn" class="btn btn-success">儲存設定</button>
-                            <span id="validation-status"></span>
-                        </div>
-                        <div class="form-group" style="display: none;">
-                            <label for="model">LLM 模型</label>
-                            <input type="text" id="model" name="model" placeholder="例如：llama3.1:8b-instruct-fp16">
-                        </div>
-                        <div class="form-group" style="display: none;">
-                            <label for="similarity_threshold">相似度閾值</label>
-                            <input type="number" id="similarity_threshold" name="similarity_threshold" min="0" max="1" step="0.1" placeholder="例如：0.7">
-                        </div>
-                    </div>
-                </fieldset>
-
-                <button type="submit" id="submit-btn" class="submit-btn">
-                    <span class="btn-text">開始驗證</span>
-                    <div class="spinner hidden"></div>
-                </button>
+                <!-- 第五步：開始驗證 -->
+                <div class="submit-section">
+                    <button type="submit" id="submit-btn" class="submit-btn">
+                        <span class="btn-text">🚀 開始驗證</span>
+                        <div class="spinner hidden"></div>
+                    </button>
+                </div>
             </form>
 
             <div id="status-section" class="hidden">

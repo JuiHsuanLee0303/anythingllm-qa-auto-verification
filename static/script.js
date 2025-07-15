@@ -26,6 +26,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const validateBtn = document.getElementById('validate-connection-btn');
     const saveBtn = document.getElementById('save-settings-btn');
     const validationStatus = document.getElementById('validation-status');
+    
+    // Workspace elements
+    const workspaceSelect = document.getElementById('workspace');
+    const refreshWorkspacesBtn = document.getElementById('refresh-workspaces-btn');
+    
+    // API input elements for monitoring changes
+    const apiUrlInput = document.getElementById('api_url');
+    const apiKeyInput = document.getElementById('api_key');
 
     // Excel help elements
     const toggleExcelHelpBtn = document.getElementById('toggle-excel-help');
@@ -131,6 +139,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
+    async function loadWorkspaces(apiUrl, apiKey) {
+        try {
+            // 顯示載入狀態
+            workspaceSelect.innerHTML = '<option value="">正在載入工作區...</option>';
+            workspaceSelect.disabled = true;
+            refreshWorkspacesBtn.disabled = true;
+            
+            // 更新驗證狀態為載入中
+            validationStatus.textContent = '🔄 正在載入工作區列表...';
+            validationStatus.className = '';
+
+            const response = await fetch('/api/get_workspaces', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ api_url: apiUrl, api_key: apiKey })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                // 清空並重新填充工作區選單
+                workspaceSelect.innerHTML = '<option value="">請選擇工作區</option>';
+                
+                if (result.workspaces && result.workspaces.length > 0) {
+                    result.workspaces.forEach(workspace => {
+                        const option = document.createElement('option');
+                        // 優先使用 slug，如果沒有則使用 id
+                        option.value = workspace.slug || workspace.id;
+                        option.textContent = `${workspace.name} (${workspace.slug || workspace.id})`;
+                        option.dataset.workspaceId = workspace.id;
+                        option.dataset.workspaceName = workspace.name;
+                        workspaceSelect.appendChild(option);
+                    });
+                    
+                    // 顯示成功訊息
+                    validationStatus.textContent = `✅ ${result.message}`;
+                    validationStatus.className = 'success';
+                } else {
+                    workspaceSelect.innerHTML = '<option value="">沒有找到工作區</option>';
+                    validationStatus.textContent = '⚠️ 沒有找到任何工作區';
+                    validationStatus.className = 'warning';
+                }
+                
+                // 啟用工作區選擇功能
+                workspaceSelect.disabled = false;
+                refreshWorkspacesBtn.disabled = false;
+                
+            } else {
+                workspaceSelect.innerHTML = '<option value="">載入工作區失敗</option>';
+                validationStatus.textContent = `❌ ${result.message}`;
+                validationStatus.className = 'error';
+                disableWorkspaceFeatures();
+            }
+        } catch (error) {
+            console.error('載入工作區時發生錯誤:', error);
+            workspaceSelect.innerHTML = '<option value="">載入工作區失敗</option>';
+            validationStatus.textContent = '❌ 載入工作區時發生錯誤';
+            validationStatus.className = 'error';
+            disableWorkspaceFeatures();
+        }
+    }
+
+    function resetWorkspaceSelector() {
+        workspaceSelect.innerHTML = '<option value="">請先驗證連線以載入工作區列表</option>';
+        workspaceSelect.disabled = true;
+        refreshWorkspacesBtn.disabled = true;
+    }
+
+    function disableWorkspaceFeatures() {
+        workspaceSelect.innerHTML = '<option value="">請先驗證連線以載入工作區列表</option>';
+        workspaceSelect.disabled = true;
+        refreshWorkspacesBtn.disabled = true;
+    }
+
     function downloadExampleFile() {
         // 使用後端 API 下載 Excel 範例檔案
         fetch('/api/download_example')
@@ -188,8 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadExampleBtn.addEventListener('click', downloadExampleFile);
 
     validateBtn.addEventListener('click', async () => {
-        const apiUrl = document.getElementById('api_url').value;
-        const apiKey = document.getElementById('api_key').value;
+        const apiUrl = apiUrlInput.value;
+        const apiKey = apiKeyInput.value;
 
         if (!apiUrl || !apiKey) {
             validationStatus.textContent = '請先填寫 API URL 和金鑰。';
@@ -197,8 +279,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 驗證時，先顯示載入狀態並禁用工作區選單
         validationStatus.textContent = '正在驗證...';
         validationStatus.className = '';
+        workspaceSelect.innerHTML = '<option value="">正在驗證連線...</option>';
+        workspaceSelect.disabled = true;
+        refreshWorkspacesBtn.disabled = true;
 
         try {
             const response = await fetch('/api/validate_connection', {
@@ -212,16 +298,39 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok && result.success) {
                 validationStatus.textContent = '✅ ' + result.message;
                 validationStatus.className = 'success';
+                
+                // 驗證成功後自動載入工作區列表
+                await loadWorkspaces(apiUrl, apiKey);
             } else {
                 validationStatus.textContent = '❌ ' + result.message;
                 validationStatus.className = 'error';
+                // 驗證失敗時禁用工作區相關功能
+                disableWorkspaceFeatures();
             }
         } catch (error) {
             validationStatus.textContent = '❌ 驗證請求失敗，請檢查主控台。';
             validationStatus.className = 'error';
             console.error('Validation fetch error:', error);
+            disableWorkspaceFeatures();
         }
     });
+
+    // 重新載入工作區列表
+    refreshWorkspacesBtn.addEventListener('click', async () => {
+        const apiUrl = apiUrlInput.value;
+        const apiKey = apiKeyInput.value;
+
+        if (!apiUrl || !apiKey) {
+            alert('請先填寫 API URL 和金鑰。');
+            return;
+        }
+
+        await loadWorkspaces(apiUrl, apiKey);
+    });
+
+    // 監聽 API URL 與 API Key 欄位變動，自動重設工作區選單
+    apiUrlInput.addEventListener('input', resetWorkspaceSelector);
+    apiKeyInput.addEventListener('input', resetWorkspaceSelector);
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -235,8 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(form);
 
         // Append advanced settings if they have values
-        const apiUrl = document.getElementById('api_url').value;
-        const apiKey = document.getElementById('api_key').value;
+        const apiUrl = apiUrlInput.value;
+        const apiKey = apiKeyInput.value;
         const model = document.getElementById('model').value;
         const similarityThreshold = document.getElementById('similarity_threshold').value;
 

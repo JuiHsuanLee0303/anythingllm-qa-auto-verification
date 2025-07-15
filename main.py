@@ -57,18 +57,18 @@ class QAVerificationSystem:
             self.logger.error(f"API 金鑰驗證時發生錯誤: {e}", exc_info=True)
             return False
 
-    def get_workspace_slug(self, workspace_name: str) -> Optional[str]:
+    def get_workspace_slug(self, workspace_identifier: str) -> Optional[str]:
         """
         獲取工作區的 slug
         
         Args:
-            workspace_name (str): 工作區名稱
+            workspace_identifier (str): 工作區名稱或 slug
             
         Returns:
             Optional[str]: 工作區的 slug，如果未找到則返回 None
         """
         try:
-            self.logger.info(f"🔍 搜尋工作區: {workspace_name}")
+            self.logger.info(f"🔍 搜尋工作區: {workspace_identifier}")
             response = requests.get(
                 f'{self.config.api.base_url}/api/v1/workspaces',
                 headers=self.config.get_headers()
@@ -78,11 +78,16 @@ class QAVerificationSystem:
             
             workspace_list = workspaces.get('workspaces', []) if isinstance(workspaces, dict) else workspaces
             for workspace in workspace_list:
-                if isinstance(workspace, dict) and workspace.get('name') == workspace_name:
-                    self.logger.info(f"✅ 找到工作區: {workspace_name}")
-                    return workspace.get('slug')
+                if isinstance(workspace, dict):
+                    # 同時檢查 name 和 slug
+                    if (workspace.get('name') == workspace_identifier or 
+                        workspace.get('slug') == workspace_identifier):
+                        found_slug = workspace.get('slug')
+                        found_name = workspace.get('name')
+                        self.logger.info(f"✅ 找到工作區: {found_name} (slug: {found_slug})")
+                        return found_slug
             
-            self.logger.info(f"❌ 工作區 '{workspace_name}' 不存在")
+            self.logger.info(f"❌ 工作區 '{workspace_identifier}' 不存在")
             return None
         except Exception as e:
             self.logger.error(f"獲取工作區時發生錯誤: {e}", exc_info=True)

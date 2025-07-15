@@ -606,6 +606,61 @@ def validate_connection():
         return jsonify({"success": False, "message": "發生未知的伺服器錯誤"}), 500
 
 
+@app.route('/api/get_workspaces', methods=['POST'])
+def get_workspaces():
+    """API 端點，用於獲取 AnythingLLM 的工作區列表。"""
+    data = request.json
+    api_url = data.get('api_url')
+    api_key = data.get('api_key')
+
+    if not api_url or not api_key:
+        return jsonify({"success": False, "message": "API URL 和金鑰為必填項"}), 400
+
+    try:
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+        # 移除結尾的斜線以確保路徑正確
+        workspaces_url = f"{api_url.rstrip('/')}/api/v1/workspaces"
+        
+        response = requests.get(workspaces_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        workspaces_data = response.json()
+        workspaces = workspaces_data.get('workspaces', [])
+        
+        # 格式化工作區列表，包含 id、name 和 slug
+        formatted_workspaces = []
+        for workspace in workspaces:
+            formatted_workspaces.append({
+                'id': workspace.get('id'),
+                'name': workspace.get('name', '未命名工作區'),
+                'slug': workspace.get('slug', '')
+            })
+        
+        return jsonify({
+            "success": True, 
+            "workspaces": formatted_workspaces,
+            "message": f"成功獲取 {len(formatted_workspaces)} 個工作區"
+        })
+
+    except requests.exceptions.Timeout:
+        return jsonify({"success": False, "message": "連線超時，請檢查 URL 和網路"}), 408
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 401:
+            return jsonify({"success": False, "message": "認證失敗，API 金鑰無效"}), 401
+        elif e.response.status_code == 403:
+            return jsonify({"success": False, "message": "權限不足，無法獲取工作區列表"}), 403
+        else:
+            return jsonify({"success": False, "message": f"HTTP 錯誤: {e.response.status_code}"}), 500
+    except requests.exceptions.RequestException as e:
+        return jsonify({"success": False, "message": f"連線失敗，請檢查 API URL 是否正確"}), 500
+    except Exception as e:
+        app_logger.error(f"獲取工作區列表時發生錯誤: {e}", exc_info=True)
+        return jsonify({"success": False, "message": "發生未知的伺服器錯誤"}), 500
+
+
 @app.route('/api/download_example')
 def download_example():
     """API 端點，用於下載 Excel 範例檔案"""
