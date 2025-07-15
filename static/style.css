@@ -224,38 +224,104 @@ header {
 
 .language-selector {
     position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.language-selector-icon {
+    position: absolute;
+    left: var(--space-3);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--font-size-sm);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.8;
 }
 
 .language-select {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-xl);
     color: var(--text-inverse);
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 1.5rem);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     cursor: pointer;
     transition: all var(--transition-normal);
-    backdrop-filter: blur(10px);
-    min-width: 120px;
+    backdrop-filter: blur(15px);
+    min-width: 140px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    position: relative;
 }
 
 .language-select:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.35);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .language-select:focus {
     outline: none;
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.language-select::after {
+    content: '▼';
+    position: absolute;
+    right: var(--space-3);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--font-size-xs);
+    color: var(--text-inverse);
+    opacity: 0.7;
+    pointer-events: none;
+    transition: transform var(--transition-normal);
+}
+
+.language-select:focus::after {
+    transform: translateY(-50%) rotate(180deg);
 }
 
 .language-select option {
     background: var(--bg-primary);
     color: var(--text-primary);
-    padding: var(--space-2);
+    padding: var(--space-3);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    border: none;
+    transition: background-color var(--transition-fast);
+}
+
+.language-select option:hover {
+    background: var(--primary-50);
+}
+
+.language-select option:checked {
+    background: var(--primary-100);
+    color: var(--primary-700);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* 深色主題下的語言選單樣式 */
+[data-theme="dark"] .language-select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .language-select option:hover {
+    background: var(--primary-900);
+}
+
+[data-theme="dark"] .language-select option:checked {
+    background: var(--primary-800);
+    color: var(--primary-200);
 }
 
 .theme-toggle {
@@ -1676,6 +1742,17 @@ footer {
         width: 100%;
     }
     
+    /* 語言選單響應式設計 */
+    .language-selector {
+        min-width: 120px;
+    }
+    
+    .language-select {
+        min-width: 120px;
+        font-size: var(--font-size-xs);
+        padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 1.2rem);
+    }
+    
     .modal-content {
         width: 98%;
         margin: var(--space-4);
@@ -1717,6 +1794,28 @@ footer {
     
     .help-content {
         padding: var(--space-4) !important;
+    }
+    
+    /* 語言選單在小螢幕上的優化 */
+    .header-controls {
+        flex-direction: column;
+        gap: var(--space-3);
+        align-items: center;
+    }
+    
+    .language-selector {
+        min-width: 100px;
+    }
+    
+    .language-select {
+        min-width: 100px;
+        font-size: var(--font-size-xs);
+        padding: var(--space-2) var(--space-2) var(--space-2) calc(var(--space-2) + 1rem);
+    }
+    
+    .language-selector-icon {
+        left: var(--space-2);
+        font-size: var(--font-size-xs);
     }
 } 
 

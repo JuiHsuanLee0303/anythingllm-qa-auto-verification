@@ -285,6 +285,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTheme();
     loadSettings();
     
+    // Initialize i18n system
+    if (window.i18n) {
+        window.i18n.initLanguage();
+    }
+    
     // Initialize form validation based on current mode
     const currentMode = excelModeBtn.classList.contains('active') ? 'excel' : 'single';
     updateFormValidation(currentMode);
