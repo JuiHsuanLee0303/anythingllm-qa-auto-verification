@@ -10,6 +10,9 @@ import json
 import requests
 from flask import Flask, render_template, jsonify, request, Response, send_from_directory
 from werkzeug.utils import secure_filename
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from io import BytesIO
 
 # 匯入重構後的核心邏輯
 from config import Config
@@ -205,6 +208,66 @@ def validate_connection():
     except Exception as e:
         app_logger.error(f"未知的驗證錯誤: {e}", exc_info=True)
         return jsonify({"success": False, "message": "發生未知的伺服器錯誤"}), 500
+
+
+@app.route('/api/download_example')
+def download_example():
+    """API 端點，用於下載 Excel 範例檔案"""
+    try:
+        # 建立範例數據
+        example_data = [
+            ['什麼是 Python？', 'Python 是一種高級程式語言，以其簡潔的語法和強大的功能而聞名。它支援多種程式設計範式，包括程序式、物件導向和函數式程式設計。Python 被廣泛應用於網頁開發、數據分析、人工智慧、自動化腳本等領域。'],
+            ['機器學習的主要類型有哪些？', '機器學習主要分為三種類型：1) 監督式學習：使用標記的訓練數據來學習輸入和輸出之間的映射關係，如分類和回歸問題。2) 非監督式學習：處理未標記的數據，發現數據中的隱藏模式，如聚類和降維。3) 強化學習：通過與環境互動來學習最佳策略，如遊戲AI和機器人控制。'],
+            ['什麼是深度學習？', '深度學習是機器學習的一個子集，使用多層神經網路來學習數據的複雜模式。它能夠自動提取特徵，並在圖像識別、自然語言處理、語音識別等領域表現出色。深度學習的核心是多層感知機和各種神經網路架構，如卷積神經網路(CNN)、循環神經網路(RNN)和變壓器(Transformer)。'],
+            ['什麼是 API？', 'API（應用程式介面）是一組定義了軟體組件如何相互通信的規則和協議。它允許不同的應用程式之間進行數據交換和功能調用。API 可以是 RESTful、GraphQL、SOAP 等不同類型，並提供標準化的方式來訪問服務和數據。'],
+            ['什麼是資料庫？', '資料庫是一個有組織的數據集合，用於存儲、管理和檢索信息。常見的資料庫類型包括：1) 關聯式資料庫：如 MySQL、PostgreSQL，使用表格結構存儲數據。2) NoSQL 資料庫：如 MongoDB、Redis，支援更靈活的數據結構。3) 圖形資料庫：如 Neo4j，專門處理複雜的關係數據。'],
+            ['什麼是容器化技術？', '容器化技術是一種虛擬化方法，將應用程式及其依賴項打包在一個標準化的單元中。Docker 是最流行的容器化平台，它提供了一致的運行環境，確保應用程式在不同環境中都能正常運行。容器化技術提高了部署效率、資源利用率和應用程式的可移植性。'],
+            ['什麼是微服務架構？', '微服務架構是一種將應用程式分解為小型、獨立服務的設計模式。每個服務負責特定的業務功能，可以獨立開發、部署和擴展。微服務架構的優點包括：更好的可維護性、技術多樣性、獨立部署和故障隔離。但同時也帶來了分散式系統的複雜性挑戰。']
+        ]
+
+        # 建立 Excel 工作簿
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "問答集範例"
+
+        # 設定標題樣式
+        center_alignment = Alignment(horizontal="center", vertical="center")
+
+        # 寫入數據並設定樣式
+        for row_idx, row_data in enumerate(example_data, 1):
+            for col_idx, cell_value in enumerate(row_data, 1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=cell_value)
+                
+                # 自動調整欄寬
+                if col_idx == 1:  # 問題欄
+                    ws.column_dimensions[cell.column_letter].width = 25
+                elif col_idx == 2:  # 標準答案欄
+                    ws.column_dimensions[cell.column_letter].width = 60
+                else:  # 其他欄位
+                    ws.column_dimensions[cell.column_letter].width = 15
+
+        # 設定行高
+        for row in range(1, len(example_data) + 1):
+            if row == 1:
+                ws.row_dimensions[row].height = 30
+            else:
+                ws.row_dimensions[row].height = 80
+
+        # 將 Excel 檔案保存到記憶體
+        excel_file = BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+
+        # 回傳檔案
+        return Response(
+            excel_file.getvalue(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': 'attachment; filename=qa_example.xlsx'}
+        )
+
+    except Exception as e:
+        app_logger.error(f"生成範例檔案時發生錯誤: {e}", exc_info=True)
+        return jsonify({"error": "生成範例檔案時發生錯誤"}), 500
 
 
 @app.route('/api/verify', methods=['POST'])

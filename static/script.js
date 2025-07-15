@@ -27,6 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBtn = document.getElementById('save-settings-btn');
     const validationStatus = document.getElementById('validation-status');
 
+    // Excel help elements
+    const toggleExcelHelpBtn = document.getElementById('toggle-excel-help');
+    const excelHelpContent = document.getElementById('excel-help-content');
+    const downloadExampleBtn = document.getElementById('download-example');
+
     let eventSource;
 
     // --- Functions ---
@@ -65,6 +70,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
+    function downloadExampleFile() {
+        // 使用後端 API 下載 Excel 範例檔案
+        fetch('/api/download_example')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('下載失敗');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'qa_example.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('下載範例檔案時發生錯誤:', error);
+                alert('下載範例檔案時發生錯誤，請稍後再試。');
+            });
+    }
+
     // --- Event Listeners ---
 
     // Load settings from localStorage when the page loads
@@ -75,7 +105,14 @@ document.addEventListener('DOMContentLoaded', () => {
         fieldset.classList.toggle('open');
     });
 
+    toggleExcelHelpBtn.addEventListener('click', () => {
+        const helpContainer = toggleExcelHelpBtn.parentElement;
+        helpContainer.classList.toggle('open');
+    });
+
     saveBtn.addEventListener('click', saveSettings);
+
+    downloadExampleBtn.addEventListener('click', downloadExampleFile);
 
     validateBtn.addEventListener('click', async () => {
         const apiUrl = document.getElementById('api_url').value;

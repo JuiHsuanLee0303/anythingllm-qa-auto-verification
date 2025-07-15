@@ -192,6 +192,141 @@ main {
     background-color: #27ae60;
 }
 
+/* --- Excel Format Help --- */
+.excel-format-help {
+    margin: 1rem 0;
+}
+
+.help-btn {
+    background: none;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.help-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.help-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out, padding 0.3s ease-in-out;
+    background-color: #f8f9fa;
+    border-radius: var(--border-radius);
+    margin-top: 0.5rem;
+}
+
+.excel-format-help.open .help-content {
+    max-height: 2000px;
+    padding: 1.5rem;
+}
+
+.help-section h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.help-section h4 {
+    color: #555;
+    margin: 1.5rem 0 0.5rem;
+    font-size: 1rem;
+}
+
+.format-table table,
+.example-table table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.format-table th,
+.format-table td,
+.example-table th,
+.example-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.format-table th,
+.example-table th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 500;
+}
+
+.format-table tr:nth-child(even),
+.example-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.required {
+    color: var(--error-color);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.optional {
+    color: var(--secondary-color);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.btn-download-example {
+    background-color: var(--success-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-download-example:hover {
+    background-color: #27ae60;
+}
+
+.tips-section ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.tips-section li {
+    margin-bottom: 0.5rem;
+    color: #555;
+}
+
+.example-section {
+    margin: 1.5rem 0;
+}
+
+.download-section {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background-color: #e8f5e8;
+    border-radius: 4px;
+    border-left: 4px solid var(--success-color);
+}
+
 .submit-btn {
     width: 100%;
     padding: 0.9rem;
