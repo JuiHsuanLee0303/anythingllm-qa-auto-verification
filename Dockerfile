@@ -1,17 +1,17 @@
 # --- Base Stage ---
 # Use an official Python runtime as a parent image
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Set the working directory in the container
 WORKDIR /app
 
 # --- Builder Stage ---
 # This stage installs dependencies
-FROM base as builder
+FROM base AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends gcc build-essential

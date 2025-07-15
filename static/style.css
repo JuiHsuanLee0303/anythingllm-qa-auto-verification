@@ -595,6 +595,81 @@ main {
     to { transform: rotate(360deg); }
 }
 
+/* ===== CONNECTION SETTINGS ===== */
+.connection-settings {
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-xl);
+    padding: 0 var(--space-6);
+    margin: var(--space-6) 0;
+    transition: all var(--transition-normal);
+    background-color: var(--bg-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.connection-settings:hover {
+    border-color: var(--border-medium);
+    box-shadow: var(--shadow-md);
+}
+
+.connection-legend {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    padding: var(--space-4) var(--space-6);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    font-size: var(--font-size-lg);
+    transition: all var(--transition-normal);
+    background: linear-gradient(135deg, var(--warning-50), var(--warning-100));
+    border-radius: var(--radius-xl);
+    border: 2px solid var(--warning-200);
+    margin-bottom: var(--space-4);
+}
+
+.connection-legend .legend-icon {
+    font-size: var(--font-size-xl);
+}
+
+.connection-status {
+    margin-left: auto;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    background-color: var(--warning-50);
+    color: var(--warning-700);
+    transition: all var(--transition-normal);
+}
+
+.connection-settings.verified .connection-legend {
+    background: linear-gradient(135deg, var(--success-50), var(--success-100));
+    border-color: var(--success-200);
+}
+
+.connection-settings.verified .connection-status {
+    background-color: var(--success-50);
+    color: var(--success-700);
+}
+
+.connection-settings.verified {
+    border-color: var(--success);
+    background-color: var(--success-50);
+}
+
+.connection-content {
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height var(--transition-slow);
+    padding: var(--space-6) 0 var(--space-4);
+}
+
+.connection-settings.collapsed .connection-content {
+    max-height: 0;
+    padding: 0;
+}
+
 /* ===== ADVANCED SETTINGS ===== */
 .advanced-settings {
     border: 2px solid var(--border-light);

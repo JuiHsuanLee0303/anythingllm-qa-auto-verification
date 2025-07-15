@@ -24,12 +24,16 @@
         </header>
         <main>
             <form id="upload-form">
-                <!-- 第一步：進階設定 -->
-                <fieldset class="advanced-settings">
-                    <legend id="toggle-advanced">步驟 1：AnythingLLM 連線設定</legend>
-                    <div id="advanced-options" class="advanced-options-content">
+                <!-- 第一步：AnythingLLM 連線設定 -->
+                <fieldset class="connection-settings" id="connection-settings">
+                    <legend class="connection-legend">
+                        <span class="legend-icon">🔗</span>
+                        步驟 1：AnythingLLM 連線設定
+                        <span class="connection-status" id="connection-status">未驗證</span>
+                    </legend>
+                    <div class="connection-content">
                         <div class="form-group">
-                            <label for="api_url">AnythingLLM API URL<span class="required-star">*</span></label>
+                            <label for="api_url">API URL<span class="required-star">*</span></label>
                             <input type="text" id="api_url" name="api_url" placeholder="例如：http://localhost:3001" value="{{ default_api_url }}" required>
                         </div>
                         <div class="form-group">
@@ -41,11 +45,18 @@
                             <button type="button" id="save-settings-btn" class="btn btn-success">💾 儲存設定</button>
                             <span id="validation-status"></span>
                         </div>
-                        <div class="form-group" style="display: none;">
+                    </div>
+                </fieldset>
+
+                <!-- 進階設定 -->
+                <fieldset class="advanced-settings" id="advanced-settings" style="display: none;">
+                    <legend id="toggle-advanced">⚙️ 進階設定</legend>
+                    <div id="advanced-options" class="advanced-options-content">
+                        <div class="form-group">
                             <label for="model">LLM 模型</label>
                             <input type="text" id="model" name="model" placeholder="例如：llama3.1:8b-instruct-fp16">
                         </div>
-                        <div class="form-group" style="display: none;">
+                        <div class="form-group">
                             <label for="similarity_threshold">相似度閾值</label>
                             <input type="number" id="similarity_threshold" name="similarity_threshold" min="0" max="1" step="0.1" placeholder="例如：0.7">
                         </div>

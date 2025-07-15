@@ -25,6 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleAdvancedBtn = document.getElementById('toggle-advanced');
     const advancedOptions = document.getElementById('advanced-options');
 
+    // Connection settings elements
+    const connectionSettings = document.getElementById('connection-settings');
+    const connectionStatus = document.getElementById('connection-status');
+
     // Validation elements
     const validateBtn = document.getElementById('validate-connection-btn');
     const saveBtn = document.getElementById('save-settings-btn');
@@ -212,6 +216,11 @@ document.addEventListener('DOMContentLoaded', () => {
         workspaceSelect.innerHTML = '<option value="">請先驗證連線以載入工作區列表</option>';
         workspaceSelect.disabled = true;
         refreshWorkspacesBtn.disabled = true;
+        
+        // 重置連線狀態
+        connectionStatus.textContent = '未驗證';
+        connectionSettings.classList.remove('verified');
+        connectionSettings.classList.remove('collapsed');
     }
 
     function disableWorkspaceFeatures() {
@@ -244,6 +253,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('下載範例檔案時發生錯誤，請稍後再試。');
             });
     }
+    
+    function initializeConnectionUI() {
+        // 檢查是否有已儲存的 API URL 和 API Key
+        const savedApiUrl = localStorage.getItem('advanced_api_url');
+        const savedApiKey = localStorage.getItem('advanced_api_key');
+        
+        // 如果有已儲存的設定，檢查是否已經驗證過
+        if (savedApiUrl && savedApiKey) {
+            // 檢查工作區選單是否有選項（表示之前驗證成功過）
+            if (workspaceSelect.options.length > 1) {
+                // 之前驗證成功過，收合連線設定區塊
+                connectionStatus.textContent = '已驗證';
+                connectionSettings.classList.add('verified');
+                connectionSettings.classList.add('collapsed');
+            }
+        }
+    }
 
     // --- Event Listeners ---
 
@@ -254,6 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize form validation based on current mode
     const currentMode = excelModeBtn.classList.contains('active') ? 'excel' : 'single';
     updateFormValidation(currentMode);
+    
+    // Initialize connection UI
+    initializeConnectionUI();
 
     // Theme toggle event listener
     themeToggleBtn.addEventListener('click', toggleTheme);
@@ -265,6 +294,14 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleAdvancedBtn.addEventListener('click', () => {
         const fieldset = toggleAdvancedBtn.parentElement;
         fieldset.classList.toggle('open');
+    });
+    
+    // Connection settings toggle
+    connectionSettings.addEventListener('click', (e) => {
+        // 只有點擊 legend 時才觸發收合
+        if (e.target.closest('.connection-legend')) {
+            connectionSettings.classList.toggle('collapsed');
+        }
     });
 
     toggleExcelHelpBtn.addEventListener('click', () => {
@@ -305,6 +342,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok && result.success) {
                 validationStatus.textContent = '✅ ' + result.message;
                 validationStatus.className = 'success';
+                
+                // 更新連線狀態
+                connectionStatus.textContent = '已驗證';
+                connectionSettings.classList.add('verified');
+                
+                // 延遲收合連線設定區塊
+                setTimeout(() => {
+                    connectionSettings.classList.add('collapsed');
+                }, 2000);
                 
                 // 驗證成功後自動載入工作區列表
                 await loadWorkspaces(apiUrl, apiKey);
