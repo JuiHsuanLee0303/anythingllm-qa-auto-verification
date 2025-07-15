@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // 初始化多語系支援
+    if (window.i18n) {
+        window.i18n.initLanguage();
+    }
+
     const form = document.getElementById('upload-form');
     const submitBtn = document.getElementById('submit-btn');
     const btnText = submitBtn.querySelector('.btn-text');
@@ -49,6 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Theme toggle elements
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
+
+    // Language selector elements
+    const languageSelect = document.getElementById('language-select');
 
     // Mode selector elements
     const excelModeBtn = document.getElementById('excel-mode-btn');
@@ -286,6 +294,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Theme toggle event listener
     themeToggleBtn.addEventListener('click', toggleTheme);
+
+    // Language switching event listener
+    if (languageSelect) {
+        languageSelect.addEventListener('change', (e) => {
+            if (window.i18n) {
+                window.i18n.switchLanguage(e.target.value);
+            }
+        });
+        
+        // 設定當前語言選項
+        const currentLang = window.i18n ? window.i18n.currentLanguage() : 'zh-TW';
+        languageSelect.value = currentLang;
+    }
 
     // Mode selector event listeners
     excelModeBtn.addEventListener('click', () => switchMode('excel'));

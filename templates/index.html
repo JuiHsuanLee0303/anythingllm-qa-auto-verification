@@ -11,14 +11,24 @@
         <header>
             <div class="header-content">
                 <div class="header-text">
-                    <h1>QA 自動化驗證系統</h1>
-                    <p>上傳您的檔案以開始品質分析</p>
+                    <h1 data-i18n="page_title">QA 自動化驗證系統</h1>
+                    <p data-i18n="page_subtitle">上傳您的檔案以開始品質分析</p>
                 </div>
-                <div class="theme-toggle">
-                    <button id="theme-toggle-btn" class="theme-btn" aria-label="切換主題">
-                        <span class="theme-icon light-icon">☀️</span>
-                        <span class="theme-icon dark-icon">🌙</span>
-                    </button>
+                <div class="header-controls">
+                    <!-- 語言切換器 -->
+                    <div class="language-selector">
+                        <select id="language-select" class="language-select">
+                            <option value="zh-TW" data-i18n="zh_tw">繁體中文</option>
+                            <option value="en" data-i18n="en">English</option>
+                        </select>
+                    </div>
+                    <!-- 主題切換器 -->
+                    <div class="theme-toggle">
+                        <button id="theme-toggle-btn" class="theme-btn" aria-label="切換主題">
+                            <span class="theme-icon light-icon">☀️</span>
+                            <span class="theme-icon dark-icon">🌙</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -28,21 +38,21 @@
                 <fieldset class="connection-settings" id="connection-settings">
                     <legend class="connection-legend">
                         <span class="legend-icon">🔗</span>
-                        步驟 1：AnythingLLM 連線設定
-                        <span class="connection-status" id="connection-status">未驗證</span>
+                        <span data-i18n="step_1_title">步驟 1：AnythingLLM 連線設定</span>
+                        <span class="connection-status" id="connection-status" data-i18n="connection_status">未驗證</span>
                     </legend>
                     <div class="connection-content">
                         <div class="form-group">
-                            <label for="api_url">API URL<span class="required-star">*</span></label>
-                            <input type="text" id="api_url" name="api_url" placeholder="例如：http://localhost:3001" value="{{ default_api_url }}" required>
+                            <label for="api_url" data-i18n="api_url_label">API URL<span class="required-star">*</span></label>
+                            <input type="text" id="api_url" name="api_url" data-i18n="api_url_placeholder" placeholder="例如：http://localhost:3001" value="{{ default_api_url }}" required>
                         </div>
                         <div class="form-group">
-                            <label for="api_key">API 金鑰 (API Key)<span class="required-star">*</span></label>
-                            <input type="password" id="api_key" name="api_key" placeholder="請輸入您的 API 金鑰" value="{{ default_api_key }}" required>
+                            <label for="api_key" data-i18n="api_key_label">API 金鑰 (API Key)<span class="required-star">*</span></label>
+                            <input type="password" id="api_key" name="api_key" data-i18n="api_key_placeholder" placeholder="請輸入您的 API 金鑰" value="{{ default_api_key }}" required>
                         </div>
                         <div class="form-group validation-group">
-                            <button type="button" id="validate-connection-btn" class="btn btn-primary">🔗 驗證連線</button>
-                            <button type="button" id="save-settings-btn" class="btn btn-success">💾 儲存設定</button>
+                            <button type="button" id="validate-connection-btn" class="btn btn-primary" data-i18n="validate_connection">🔗 驗證連線</button>
+                            <button type="button" id="save-settings-btn" class="btn btn-success" data-i18n="save_settings">💾 儲存設定</button>
                             <span id="validation-status"></span>
                         </div>
                     </div>
@@ -50,41 +60,41 @@
 
                 <!-- 進階設定 -->
                 <fieldset class="advanced-settings" id="advanced-settings" style="display: none;">
-                    <legend id="toggle-advanced">⚙️ 進階設定</legend>
+                    <legend id="toggle-advanced" data-i18n="advanced_settings">⚙️ 進階設定</legend>
                     <div id="advanced-options" class="advanced-options-content">
                         <div class="form-group">
-                            <label for="model">LLM 模型</label>
-                            <input type="text" id="model" name="model" placeholder="例如：llama3.1:8b-instruct-fp16">
+                            <label for="model" data-i18n="model_label">LLM 模型</label>
+                            <input type="text" id="model" name="model" data-i18n="model_placeholder" placeholder="例如：llama3.1:8b-instruct-fp16">
                         </div>
                         <div class="form-group">
-                            <label for="similarity_threshold">相似度閾值</label>
-                            <input type="number" id="similarity_threshold" name="similarity_threshold" min="0" max="1" step="0.1" placeholder="例如：0.7">
+                            <label for="similarity_threshold" data-i18n="similarity_threshold_label">相似度閾值</label>
+                            <input type="number" id="similarity_threshold" name="similarity_threshold" min="0" max="1" step="0.1" data-i18n="similarity_threshold_placeholder" placeholder="例如：0.7">
                         </div>
                     </div>
                 </fieldset>
 
                 <!-- 第二步：工作區選擇 -->
                 <div class="form-group">
-                    <label for="workspace">步驟 2：選擇工作區<span class="required-star">*</span></label>
+                    <label for="workspace" data-i18n="step_2_title">步驟 2：選擇工作區<span class="required-star">*</span></label>
                     <div class="workspace-selector">
                         <select id="workspace" name="workspace" required>
-                            <option value="">請先驗證連線以載入工作區列表</option>
+                            <option value="" data-i18n="workspace_placeholder">請先驗證連線以載入工作區列表</option>
                         </select>
-                        <button type="button" id="refresh-workspaces-btn" class="btn btn-secondary" disabled>
+                        <button type="button" id="refresh-workspaces-btn" class="btn btn-secondary" disabled data-i18n="refresh_workspaces">
                             🔄 重新載入
                         </button>
                     </div>
-                    <small class="form-help">請先完成步驟 1 的連線驗證，系統會自動載入可用的工作區列表</small>
+                    <small class="form-help" data-i18n="workspace_help">請先完成步驟 1 的連線驗證，系統會自動載入可用的工作區列表</small>
                 </div>
                 
                 <!-- 第三步：驗證模式選擇 -->
                 <div class="form-group">
-                    <label>步驟 3：選擇驗證模式</label>
+                    <label data-i18n="validation_mode_label">步驟 3：選擇驗證模式</label>
                     <div class="mode-selector">
-                        <button type="button" id="excel-mode-btn" class="mode-btn active" data-mode="excel">
+                        <button type="button" id="excel-mode-btn" class="mode-btn active" data-mode="excel" data-i18n="excel_mode">
                             📊 Excel 批次驗證
                         </button>
-                        <button type="button" id="single-mode-btn" class="mode-btn" data-mode="single">
+                        <button type="button" id="single-mode-btn" class="mode-btn" data-mode="single" data-i18n="single_mode">
                             ✏️ 單筆文字驗證
                         </button>
                     </div>
@@ -94,66 +104,66 @@
                 <!-- Excel 模式 -->
                 <div id="excel-mode" class="mode-content active">
                     <div class="form-group">
-                        <label for="excel_file">步驟 4：上傳驗證問答集 (Excel)<span class="required-star">*</span></label>
+                        <label for="excel_file" data-i18n="step_4_title">步驟 4：上傳驗證問答集 (Excel)<span class="required-star">*</span></label>
                         <input type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
                     </div>
                     
                     <div class="excel-format-help">
-                        <button type="button" id="toggle-excel-help" class="help-btn">📋 Excel 格式說明</button>
+                        <button type="button" id="toggle-excel-help" class="help-btn" data-i18n="excel_format_help">📋 Excel 格式說明</button>
                         <div id="excel-help-content" class="help-content">
                             <div class="help-section">
-                                <h3>📝 Excel 檔案格式說明</h3>
-                                <p>請準備一個 Excel 檔案 (.xlsx)，包含以下必要欄位：</p>
+                                <h3 data-i18n="excel_format_title">📝 Excel 檔案格式說明</h3>
+                                <p data-i18n="excel_format_desc">請準備一個 Excel 檔案 (.xlsx)，包含以下必要欄位：</p>
                                 
                                 <div class="format-table">
                                     <table>
                                         <thead>
                                             <tr>
-                                                <th>欄位名稱</th>
-                                                <th>說明</th>
-                                                <th>是否必填</th>
-                                                <th>範例</th>
+                                                <th data-i18n="field_name">欄位名稱</th>
+                                                <th data-i18n="description">說明</th>
+                                                <th data-i18n="required">是否必填</th>
+                                                <th data-i18n="example">範例</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td><strong>問題</strong></td>
-                                                <td>要驗證的問題內容</td>
-                                                <td><span class="required">必填</span></td>
-                                                <td>什麼是機器學習？</td>
+                                                <td><strong data-i18n="question_field">問題</strong></td>
+                                                <td data-i18n="question_desc">要驗證的問題內容</td>
+                                                <td><span class="required" data-i18n="required_text">必填</span></td>
+                                                <td data-i18n="question_example">什麼是機器學習？</td>
                                             </tr>
                                             <tr>
-                                                <td><strong>標準答案</strong></td>
-                                                <td>預期的標準答案</td>
-                                                <td><span class="required">必填</span></td>
-                                                <td>機器學習是人工智慧的一個分支...</td>
+                                                <td><strong data-i18n="answer_field">標準答案</strong></td>
+                                                <td data-i18n="answer_desc">預期的標準答案</td>
+                                                <td><span class="required" data-i18n="required_text">必填</span></td>
+                                                <td data-i18n="answer_example">機器學習是人工智慧的一個分支...</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
                                 
                                 <div class="example-section">
-                                    <h4>📊 範例表格</h4>
+                                    <h4 data-i18n="example_table_title">📊 範例表格</h4>
                                     <div class="example-table">
                                         <table>
                                             <thead>
                                                 <tr>
-                                                    <th>問題</th>
-                                                    <th>標準答案</th>
+                                                    <th data-i18n="question_field">問題</th>
+                                                    <th data-i18n="answer_field">標準答案</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td>什麼是 Python？</td>
-                                                    <td>Python 是一種高級程式語言，以其簡潔的語法和強大的功能而聞名。它支援多種程式設計範式，包括程序式、物件導向和函數式程式設計。</td>
+                                                    <td data-i18n="python_question">什麼是 Python？</td>
+                                                    <td data-i18n="python_answer">Python 是一種高級程式語言，以其簡潔的語法和強大的功能而聞名。它支援多種程式設計範式，包括程序式、物件導向和函數式程式設計。</td>
                                                 </tr>
                                                 <tr>
-                                                    <td>機器學習的主要類型有哪些？</td>
-                                                    <td>機器學習主要分為三種類型：監督式學習、非監督式學習和強化學習。監督式學習使用標記的訓練數據，非監督式學習處理未標記的數據，強化學習通過與環境互動來學習。</td>
+                                                    <td data-i18n="ml_question">機器學習的主要類型有哪些？</td>
+                                                    <td data-i18n="ml_answer">機器學習主要分為三種類型：監督式學習、非監督式學習和強化學習。監督式學習使用標記的訓練數據，非監督式學習處理未標記的數據，強化學習通過與環境互動來學習。</td>
                                                 </tr>
                                                 <tr>
-                                                    <td>什麼是深度學習？</td>
-                                                    <td>深度學習是機器學習的一個子集，使用多層神經網路來學習數據的複雜模式。它能夠自動提取特徵，並在圖像識別、自然語言處理等領域表現出色。</td>
+                                                    <td data-i18n="dl_question">什麼是深度學習？</td>
+                                                    <td data-i18n="dl_answer">深度學習是機器學習的一個子集，使用多層神經網路來學習數據的複雜模式。它能夠自動提取特徵，並在圖像識別、自然語言處理等領域表現出色。</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -161,19 +171,19 @@
                                 </div>
                                 
                                 <div class="download-section">
-                                    <h4>📥 下載範例檔案</h4>
-                                    <p>點擊下方按鈕下載範例 Excel 檔案，您可以參考此格式來準備您的問答集：</p>
-                                    <button type="button" id="download-example" class="btn btn-success">📄 下載範例 Excel 檔案</button>
+                                    <h4 data-i18n="download_example_title">📥 下載範例檔案</h4>
+                                    <p data-i18n="download_example_desc">點擊下方按鈕下載範例 Excel 檔案，您可以參考此格式來準備您的問答集：</p>
+                                    <button type="button" id="download-example" class="btn btn-success" data-i18n="download_example_btn">📄 下載範例 Excel 檔案</button>
                                 </div>
                                 
                                 <div class="tips-section">
-                                    <h4>💡 使用提示</h4>
+                                    <h4 data-i18n="tips_title">💡 使用提示</h4>
                                     <ul>
-                                        <li>確保問題和標準答案欄位都有內容</li>
-                                        <li>標準答案建議包含完整的解釋，這樣能獲得更好的相似度評估</li>
-                                        <li>可以根據需要添加多個工作表，系統會處理所有工作表</li>
-                                        <li>檔案大小建議不超過 10MB</li>
-                                        <li>支援的檔案格式：.xlsx</li>
+                                        <li data-i18n="tip_1">確保問題和標準答案欄位都有內容</li>
+                                        <li data-i18n="tip_2">標準答案建議包含完整的解釋，這樣能獲得更好的相似度評估</li>
+                                        <li data-i18n="tip_3">可以根據需要添加多個工作表，系統會處理所有工作表</li>
+                                        <li data-i18n="tip_4">檔案大小建議不超過 10MB</li>
+                                        <li data-i18n="tip_5">支援的檔案格式：.xlsx</li>
                                     </ul>
                                 </div>
                             </div>
@@ -184,12 +194,12 @@
                 <!-- 單筆文字模式 -->
                 <div id="single-mode" class="mode-content">
                     <div class="form-group">
-                        <label for="single_question">步驟 4：輸入問題<span class="required-star">*</span></label>
-                        <textarea id="single_question" name="single_question" rows="3" placeholder="請輸入要驗證的問題..." required></textarea>
+                        <label for="single_question" data-i18n="step_4_single_title">步驟 4：輸入問題<span class="required-star">*</span></label>
+                        <textarea id="single_question" name="single_question" rows="3" data-i18n="single_question_placeholder" placeholder="請輸入要驗證的問題..." required></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="single_answer">步驟 4：輸入標準答案<span class="required-star">*</span></label>
-                        <textarea id="single_answer" name="single_answer" rows="5" placeholder="請輸入預期的標準答案..." required></textarea>
+                        <label for="single_answer" data-i18n="step_4_single_answer_title">步驟 4：輸入標準答案<span class="required-star">*</span></label>
+                        <textarea id="single_answer" name="single_answer" rows="5" data-i18n="single_answer_placeholder" placeholder="請輸入預期的標準答案..." required></textarea>
                     </div>
                 </div>
                 
@@ -201,14 +211,14 @@
                 <!-- 第五步：開始驗證 -->
                 <div class="submit-section">
                     <button type="submit" id="submit-btn" class="submit-btn">
-                        <span class="btn-text">🚀 開始驗證</span>
+                        <span class="btn-text" data-i18n="start_validation">🚀 開始驗證</span>
                         <div class="spinner hidden"></div>
                     </button>
                 </div>
             </form>
 
             <div id="status-section" class="hidden">
-                <div id="progress-text">正在初始化...</div>
+                <div id="progress-text" data-i18n="initializing">正在初始化...</div>
                 <div class="progress-bar">
                     <div class="progress-bar-fill" id="progress-bar-fill"></div>
                 </div>
@@ -217,13 +227,13 @@
 
             <!-- Excel 批次驗證結果區塊 -->
             <div id="excel-results-section" class="results-section hidden">
-                <h2>📊 Excel 批次驗證結果</h2>
+                <h2 data-i18n="excel_results_title">📊 Excel 批次驗證結果</h2>
                 <div id="excel-results-container"></div>
             </div>
 
             <!-- 單筆驗證結果區塊 -->
             <div id="single-results-section" class="results-section hidden">
-                <h2>✏️ 單筆驗證結果</h2>
+                <h2 data-i18n="single_results_title">✏️ 單筆驗證結果</h2>
                 <div id="single-results-container"></div>
             </div>
         </main>
@@ -233,7 +243,7 @@
     <div id="preview-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modal-title">檔案預覽</h2>
+                <h2 id="modal-title" data-i18n="file_preview">檔案預覽</h2>
                 <span class="close-btn">&times;</span>
             </div>
             <div id="modal-body">
@@ -243,9 +253,11 @@
     </div>
     
     <footer>
-        <p>&copy; 2025 Jui-Hsuan Lee. All Rights Reserved.</p>
+        <p data-i18n="footer_copyright">&copy; 2025 Jui-Hsuan Lee. All Rights Reserved.</p>
     </footer>
 
+    <!-- 載入多語系支援 -->
+    <script src="{{ url_for('static', filename='i18n.js') }}?v={{ version }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}?v={{ version }}"></script>
 </body>
 </html> 
