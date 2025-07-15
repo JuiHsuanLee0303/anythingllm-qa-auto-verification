@@ -1,310 +1,656 @@
 <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>QA &#x9a57;&#x8b49;&#x7cfb;&#x7d71;</title>
-            <style>
-/* From extension vscode.github */
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA 驗證系統</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --error-color: #dc2626;
+            --bg-color: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius: 8px;
+            --radius-lg: 12px;
+        }
 
-.vscode-dark img[src$=\#gh-light-mode-only],
-.vscode-light img[src$=\#gh-dark-mode-only],
-.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
-.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
-	display: none;
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-</style>
-            
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
-<style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.7;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .section h3 {
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 1.5rem 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-color);
+        }
+
+        .feature-card h4 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .deployment-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .step-list {
+            counter-reset: step-counter;
+        }
+
+        .step-item {
+            position: relative;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            background: white;
+            border-radius: var(--radius);
+            border-left: 4px solid var(--primary-color);
+            counter-increment: step-counter;
+        }
+
+        .step-item::before {
+            content: counter(step-counter);
+            position: absolute;
+            top: 1rem;
+            left: -12px;
+            background: var(--primary-color);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            margin: 1rem 0;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block::before {
+            content: 'Terminal';
+            position: absolute;
+            top: 0.5rem;
+            right: 1rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            background: #334155;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .code-block code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .inline-code {
+            background: var(--bg-secondary);
+            color: var(--primary-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.875rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            border-color: var(--primary-color);
+            color: var(--primary-dark);
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border-color: var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .button {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .button-secondary {
+            background: var(--secondary-color);
+        }
+
+        .button-secondary:hover {
+            background: #475569;
+        }
+
+        .output-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .output-item {
+            background: white;
+            padding: 1rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .output-item .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .social-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .social-link:hover {
+            color: var(--primary-color);
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        @media (max-width: 768px) {
             body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
-                font-size: 14px;
-                line-height: 1.6;
+                padding: 1rem 0.5rem;
             }
-        </style>
-        <style>
-.task-list-item {
-    list-style-type: none;
-}
 
-.task-list-item-checkbox {
-    margin-left: -20px;
-    vertical-align: middle;
-    pointer-events: none;
-}
-</style>
-<style>
-:root {
-  --color-note: #0969da;
-  --color-tip: #1a7f37;
-  --color-warning: #9a6700;
-  --color-severe: #bc4c00;
-  --color-caution: #d1242f;
-  --color-important: #8250df;
-}
+            .header {
+                padding: 2rem 1rem;
+            }
 
-</style>
-<style>
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-note: #2f81f7;
-    --color-tip: #3fb950;
-    --color-warning: #d29922;
-    --color-severe: #db6d28;
-    --color-caution: #f85149;
-    --color-important: #a371f7;
-  }
-}
+            .header h1 {
+                font-size: 2rem;
+            }
 
-</style>
-<style>
-.markdown-alert {
-  padding: 0.5rem 1rem;
-  margin-bottom: 16px;
-  color: inherit;
-  border-left: .25em solid #888;
-}
+            .content {
+                padding: 1rem;
+            }
 
-.markdown-alert>:first-child {
-  margin-top: 0
-}
+            .section {
+                padding: 1.5rem;
+            }
 
-.markdown-alert>:last-child {
-  margin-bottom: 0
-}
+            .deployment-tabs {
+                flex-direction: column;
+            }
 
-.markdown-alert .markdown-alert-title {
-  display: flex;
-  font-weight: 500;
-  align-items: center;
-  line-height: 1
-}
+            .tab-button {
+                text-align: left;
+                border-bottom: none;
+                border-left: 3px solid transparent;
+            }
 
-.markdown-alert .markdown-alert-title .octicon {
-  margin-right: 0.5rem;
-  display: inline-block;
-  overflow: visible !important;
-  vertical-align: text-bottom;
-  fill: currentColor;
-}
+            .tab-button.active {
+                border-left-color: var(--primary-color);
+            }
 
-.markdown-alert.markdown-alert-note {
-  border-left-color: var(--color-note);
-}
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
-.markdown-alert.markdown-alert-note .markdown-alert-title {
-  color: var(--color-note);
-}
+        /* 動畫效果 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-.markdown-alert.markdown-alert-important {
-  border-left-color: var(--color-important);
-}
+        .section {
+            animation: fadeInUp 0.6s ease-out;
+        }
 
-.markdown-alert.markdown-alert-important .markdown-alert-title {
-  color: var(--color-important);
-}
+        .section:nth-child(2) { animation-delay: 0.1s; }
+        .section:nth-child(3) { animation-delay: 0.2s; }
+        .section:nth-child(4) { animation-delay: 0.3s; }
+        .section:nth-child(5) { animation-delay: 0.4s; }
+        .section:nth-child(6) { animation-delay: 0.5s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🚀 QA 驗證系統</h1>
+            <p>這是一個用於驗證 AnythingLLM 回答品質的工具，支援本地與 Docker 部署。<br>
+            本系統可自動化比對問答、計算語意相似度，並產生統計圖表與報告。</p>
+        </header>
 
-.markdown-alert.markdown-alert-warning {
-  border-left-color: var(--color-warning);
-}
+        <main class="content">
+            <section class="section">
+                <h2>✨ 功能特點</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🔄 自動化驗證</h4>
+                        <p>自動化驗證問答流程，節省大量人工時間</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 多維度分析</h4>
+                        <p>BERT Score 與 Cosine Similarity 雙重評估</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📈 統計圖表</h4>
+                        <p>自動生成分佈圖、箱型圖、散點圖等視覺化圖表</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📋 詳細報告</h4>
+                        <p>提供平均值、中位數、標準差等完整統計指標</p>
+                    </div>
+                </div>
+            </section>
 
-.markdown-alert.markdown-alert-warning .markdown-alert-title {
-  color: var(--color-warning);
-}
+            <section class="section">
+                <h2>⚙️ 安裝與部署</h2>
+                
+                <div class="deployment-tabs">
+                    <button class="tab-button active" onclick="switchTab('local')">本地部署</button>
+                    <button class="tab-button" onclick="switchTab('docker')">Docker 部署</button>
+                </div>
 
-.markdown-alert.markdown-alert-tip {
-  border-left-color: var(--color-tip);
-}
+                <div id="local" class="tab-content active">
+                    <h3>傳統本地部署</h3>
+                    <div class="step-list">
+                        <div class="step-item">
+                            <h4>建立虛擬環境</h4>
+                            <div class="code-block">
+                                <code>python -m venv venv<br>
+source venv/bin/activate  # Linux/macOS<br>
+# 或<br>
+.\venv\Scripts\activate   # Windows</code>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <h4>安裝相依套件</h4>
+                            <div class="code-block">
+                                <code>pip install -r requirements.txt</code>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <h4>設定 API 金鑰</h4>
+                            <p>在專案根目錄建立 <span class="inline-code">.env</span> 檔案，內容如下：</p>
+                            <div class="code-block">
+                                <code>API_KEY="your_anythingllm_api_key"</code>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <h4>啟動 Web 伺服器</h4>
+                            <div class="code-block">
+                                <code>python app.py</code>
+                            </div>
+                            <p>開啟瀏覽器進入 <a href="http://127.0.0.1:5001" class="button">http://127.0.0.1:5001</a></p>
+                        </div>
+                        <div class="step-item">
+                            <h4>命令列模式</h4>
+                            <div class="code-block">
+                                <code>python main.py -w &lt;工作區名稱&gt; [-e &lt;Excel檔案&gt;] [其他選項]</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-.markdown-alert.markdown-alert-tip .markdown-alert-title {
-  color: var(--color-tip);
-}
+                <div id="docker" class="tab-content">
+                    <h3>Docker 部署</h3>
+                    <div class="step-list">
+                        <div class="step-item">
+                            <h4>建置映像檔</h4>
+                            <div class="code-block">
+                                <code>docker build -t qa-verification .</code>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <h4>建立 .env 檔案</h4>
+                            <div class="code-block">
+                                <code>API_KEY=your_anythingllm_api_key</code>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <h4>啟動容器</h4>
+                            <div class="code-block">
+                                <code>docker run --env-file .env -p 5001:5001 qa-verification</code>
+                            </div>
+                            <p>預設 Web 介面會在 <a href="http://localhost:5001" class="button">http://localhost:5001</a></p>
+                        </div>
+                        <div class="step-item">
+                            <h4>掛載檔案（選用）</h4>
+                            <div class="code-block">
+                                <code>docker run --env-file .env -p 5001:5001 -v $(pwd)/uploads:/app/uploads qa-verification</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-.markdown-alert.markdown-alert-caution {
-  border-left-color: var(--color-caution);
-}
+            <section class="section">
+                <h2>📊 參數與輸出</h2>
+                <div class="alert alert-info">
+                    <strong>💡 提示：</strong> 主要參數請參考 <span class="inline-code">main.py</span> 的 <span class="inline-code">parse_arguments</span>。
+                </div>
+                <p>輸出目錄預設為 <span class="inline-code">output</span>，可於 <span class="inline-code">config.yaml</span> 調整。</p>
+                
+                <h3>產出檔案</h3>
+                <div class="output-list">
+                    <div class="output-item">
+                        <div class="icon">📊</div>
+                        <strong>similarity_boxplot.png</strong>
+                        <p>相似度分數箱型圖</p>
+                    </div>
+                    <div class="output-item">
+                        <div class="icon">📈</div>
+                        <strong>similarity_scatter.png</strong>
+                        <p>兩種相似度指標的散點圖</p>
+                    </div>
+                    <div class="output-item">
+                        <div class="icon">📋</div>
+                        <strong>similarity_summary.txt</strong>
+                        <p>詳細統計報告</p>
+                    </div>
+                </div>
+            </section>
 
-.markdown-alert.markdown-alert-caution .markdown-alert-title {
-  color: var(--color-caution);
-}
+            <section class="section">
+                <h2>⚠️ 注意事項</h2>
+                <div class="alert alert-warning">
+                    <strong>🔒 安全性：</strong> 請確認 <span class="inline-code">.env</span> 檔案未被加入版本控制。
+                </div>
+                <div class="alert alert-info">
+                    <strong>📝 格式要求：</strong> Excel 檔案格式需正確。
+                </div>
+                <div class="alert alert-info">
+                    <strong>⏱️ 效能考量：</strong> 處理大量數據時需耐心等候。
+                </div>
+            </section>
 
-</style>
-        
-        </head>
-        <body class="vscode-body vscode-light">
-            <h1 id="qa-驗證系統">QA 驗證系統</h1>
-<p>這是一個用於驗證 AnythingLLM 回答品質的工具。該系統可以：</p>
-<ol>
-<li>從 Excel 文件中讀取標準問答對</li>
-<li>將問題發送給 AnythingLLM 獲取回答</li>
-<li>比較 AnythingLLM 回答與標準答案的語意相似度</li>
-<li>生成詳細的統計分析和視覺化圖表</li>
-</ol>
-<h2 id="功能特點">功能特點</h2>
-<ul>
-<li><strong>自動化流程</strong>
-<ul>
-<li>自動化驗證問答流程</li>
-</ul>
-</li>
-<li><strong>多維度相似度分析</strong>
-<ul>
-<li>BERT Score：評估語意層面的相似度</li>
-<li>Cosine Similarity：評估詞彙和句法層面的相似度</li>
-</ul>
-</li>
-<li><strong>自動生成統計圖表</strong>
-<ul>
-<li>分佈圖：顯示相似度分數的分佈情況</li>
-<li>箱型圖：顯示統計分佈特徵</li>
-<li>散點圖：展示兩種相似度指標的關係</li>
-</ul>
-</li>
-<li><strong>詳細統計報告</strong>
-<ul>
-<li>平均值、中位數、標準差等統計指標</li>
-<li>相似度分數的判斷標準說明</li>
-</ul>
-</li>
-</ul>
-<h2 id="安裝要求">安裝要求</h2>
-<p><strong>請先確保系統中有安裝Python</strong></p>
-<ol>
-<li>創建虛擬環境</li>
-</ol>
-<p>使用uv：</p>
-<pre><code class="language-bash">uv venv
-</code></pre>
-<p>使用python：</p>
-<pre><code class="language-bash">python -m venv venv
-</code></pre>
-<ol start="2">
-<li>進入虛擬環境</li>
-</ol>
-<p>使用uv：</p>
-<pre><code class="language-bash"><span class="hljs-comment"># Linux</span>
-<span class="hljs-built_in">source</span> ./.venv/bin/activate
-<span class="hljs-comment"># Windows</span>
-./.venv/Script/activate
-</code></pre>
-<p>使用python：</p>
-<pre><code class="language-bash"><span class="hljs-comment"># Linux</span>
-<span class="hljs-built_in">source</span> venv/bin/activate
-<span class="hljs-comment"># Windows</span>
-./venv/Script/activate
-</code></pre>
-<ol start="3">
-<li>安裝必要套件</li>
-</ol>
-<p>使用uv：</p>
-<pre><code class="language-bash">uv pip install -r requirements.txt
-</code></pre>
-<p>使用python：</p>
-<pre><code class="language-bash">pip install -r requirements.txt
-</code></pre>
-<h2 id="使用方法">使用方法</h2>
-<ol>
-<li>
-<p>準備 Excel 文件</p>
-<ul>
-<li>第一行：問題</li>
-<li>第二行：標準答案</li>
-<li>第三行：留空（自動填充 LLM 回答）</li>
-<li>第四行：留空（自動填充 BERT Score）</li>
-<li>第五行：留空（自動填充 Cosine Similarity）</li>
-</ul>
-<p><em>備註：不需要表頭。</em></p>
-</li>
-<li>
-<p>設置環境變數</p>
-<ul>
-<li>創建 <code>.env</code> 文件</li>
-<li>添加以下配置：<pre><code>API_KEY=your_api_key
-</code></pre>
-</li>
-</ul>
-<p><em>備註：API金鑰從 AnythingLLM 系統中生成</em></p>
-</li>
-<li>
-<p>運行程序</p>
-<pre><code class="language-bash">python main.py -w &lt;工作區名稱&gt; -e &lt;Excel檔案&gt; [選項]
-</code></pre>
-<p>必要參數：</p>
-<ul>
-<li><code>-w, --workspace</code>：AnythingLLM 工作區名稱</li>
-<li><code>-e, --excel</code>：Excel 檔案路徑</li>
-</ul>
-<p>選用參數：</p>
-<ul>
-<li><code>-d, --directory</code>：要上傳到 AnythingLLM 的文件目錄路徑</li>
-<li><code>--provider</code>：模型提供者（預設：ollama）</li>
-<li><code>-m, --model</code>：模型名稱（預設：llama3.1:8b-instruct-fp16）</li>
-<li><code>-s, --similarityThreshold</code>：相似度閾值（預設：0.7）</li>
-<li><code>-t, --Temp</code>：溫度參數（預設：0.7）</li>
-<li><code>-l, --historyLength</code>：歷史記錄長度（預設：20）</li>
-<li><code>-p, --systemPrompt</code>：系統提示詞（預設：Custom prompt for responses）</li>
-<li><code>-r, --queryRefusalResponse</code>：拒絕回應訊息（預設：Custom refusal message）</li>
-<li><code>-c, --chatMode</code>：聊天模式（預設：query）</li>
-<li><code>-n, --topN</code>：返回結果數量（預設：4）</li>
-<li><code>-o, --output</code>：輸出目錄（預設：similarity_charts）</li>
-</ul>
-<p>範例：</p>
-<pre><code class="language-bash"><span class="hljs-comment"># 基本使用</span>
-python main.py -w my_workspace -e questions.xlsx
+            <section class="section">
+                <h2>🔧 常見錯誤處理</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>📄 Excel 檔案不存在</h4>
+                        <p>檢查檔案路徑是否正確</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🌐 API 連線失敗</h4>
+                        <p>確認網路連線與 API 金鑰</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 數據格式錯誤</h4>
+                        <p>檢查 Excel 檔案格式</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📁 檔案寫入權限問題</h4>
+                        <p>確認輸出目錄權限</p>
+                    </div>
+                </div>
+            </section>
+        </main>
 
-<span class="hljs-comment"># 完整參數範例</span>
-python main.py -w my_workspace -e questions.xlsx -d ./documents --provider ollama -m llama3.1:8b-instruct-fp16 -s 0.7 -t 0.7 -l 20 -p <span class="hljs-string">&quot;自定義提示詞&quot;</span> -r <span class="hljs-string">&quot;無法回答&quot;</span> -c query -n 4 -o ./output
-</code></pre>
-</li>
-</ol>
-<h2 id="相似度分數說明">相似度分數說明</h2>
-<h3 id="bert-score">BERT Score</h3>
-<ul>
-<li>0.9-1.0：極高的語意相似度，幾乎完全相同</li>
-<li>0.8-0.9：很高的語意相似度，表達方式不同但核心意思相同</li>
-<li>0.7-0.8：較高的語意相似度，主要意思相同但有些細節差異</li>
-<li>0.6-0.7：中等語意相似度，有部分共同點但差異較大</li>
-<li>0.5-0.6：較低的語意相似度，只有少量相關內容</li>
-<li>0-0.5：很低的語意相似度，幾乎不相關</li>
-</ul>
-<h3 id="cosine-similarity">Cosine Similarity</h3>
-<ul>
-<li>0.9-1.0：幾乎完全相同的向量方向</li>
-<li>0.7-0.9：非常相似的向量方向</li>
-<li>0.5-0.7：中等相似度</li>
-<li>0.3-0.5：較低相似度</li>
-<li>0-0.3：幾乎不相關</li>
-</ul>
-<h2 id="輸出文件">輸出文件</h2>
-<p>程序會在 <code>similarity_charts</code> 目錄下生成以下文件：</p>
-<ul>
-<li><code>similarity_distributions.png</code>：相似度分數分佈圖</li>
-<li><code>similarity_boxplot.png</code>：相似度分數箱型圖</li>
-<li><code>similarity_scatter.png</code>：兩種相似度指標的散點圖</li>
-<li><code>similarity_summary.txt</code>：詳細的統計報告</li>
-</ul>
-<h2 id="注意事項">注意事項</h2>
-<ol>
-<li>確保 Excel 文件格式正確</li>
-<li>檢查環境變數配置</li>
-<li>處理大量數據時可能需要較長時間</li>
-</ol>
-<h2 id="錯誤處理">錯誤處理</h2>
-<p>程序會處理以下常見錯誤：</p>
-<ul>
-<li>Excel 文件不存在</li>
-<li>API 連接失敗</li>
-<li>數據格式錯誤</li>
-<li>文件寫入權限問題</li>
-</ul>
+        <footer class="footer">
+            <p>💡 如有問題請開 issue 或聯絡專案維護者</p>
+            <div class="social-links">
+                <a href="#" class="social-link">📧</a>
+                <a href="#" class="social-link">🐙</a>
+                <a href="#" class="social-link">💬</a>
+            </div>
+        </footer>
+    </div>
 
+    <script>
+        function switchTab(tabName) {
+            // 隱藏所有 tab 內容
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
             
+            // 移除所有 tab 按鈕的 active 狀態
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => button.classList.remove('active'));
             
-        </body>
-        </html>
+            // 顯示選中的 tab 內容
+            document.getElementById(tabName).classList.add('active');
+            
+            // 設定選中的 tab 按鈕為 active
+            event.target.classList.add('active');
+        }
+
+        // 平滑滾動效果
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // 複製程式碼功能
+        document.querySelectorAll('.code-block').forEach(block => {
+            block.addEventListener('click', function() {
+                const code = this.querySelector('code').textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    // 顯示複製成功提示
+                    const originalText = this.querySelector('code').textContent;
+                    this.querySelector('code').textContent = '已複製到剪貼簿！';
+                    setTimeout(() => {
+                        this.querySelector('code').textContent = originalText;
+                    }, 2000);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
