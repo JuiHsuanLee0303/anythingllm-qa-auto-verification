@@ -956,7 +956,7 @@ main {
 }
 
 /* ===== RESULTS SECTION ===== */
-#results-section h2 {
+.results-section h2 {
     text-align: center;
     color: var(--text-primary);
     margin-bottom: var(--space-8);
@@ -965,10 +965,14 @@ main {
     transition: color var(--transition-normal);
 }
 
-#results-container {
+#excel-results-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: var(--space-6);
+}
+
+#single-results-container {
+    margin-top: var(--space-6);
 }
 
 /* ===== SINGLE RESULT CARD ===== */
@@ -1531,7 +1535,7 @@ footer {
         font-size: var(--font-size-base);
     }
     
-    #results-container {
+    #excel-results-container {
         grid-template-columns: 1fr;
     }
     

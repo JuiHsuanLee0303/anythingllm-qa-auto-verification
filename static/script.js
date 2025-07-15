@@ -9,8 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressText = document.getElementById('progress-text');
     const logs = document.getElementById('logs');
     
-    const resultsSection = document.getElementById('results-section');
-    const resultsContainer = document.getElementById('results-container');
+    // 結果區塊元素
+    const excelResultsSection = document.getElementById('excel-results-section');
+    const excelResultsContainer = document.getElementById('excel-results-container');
+    const singleResultsSection = document.getElementById('single-results-section');
+    const singleResultsContainer = document.getElementById('single-results-container');
 
     // Modal elements
     const modal = document.getElementById('preview-modal');
@@ -82,6 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update content visibility
         excelMode.classList.toggle('active', mode === 'excel');
         singleMode.classList.toggle('active', mode === 'single');
+        
+        // Update results sections visibility
+        excelResultsSection.classList.toggle('hidden', mode !== 'excel');
+        singleResultsSection.classList.toggle('hidden', mode !== 'single');
         
         // Update form validation
         updateFormValidation(mode);
@@ -397,8 +404,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetUI() {
         statusSection.classList.add('hidden');
-        resultsSection.classList.add('hidden');
-        resultsContainer.innerHTML = '';
+        
+        // Reset all results sections
+        excelResultsSection.classList.add('hidden');
+        singleResultsSection.classList.add('hidden');
+        excelResultsContainer.innerHTML = '';
+        singleResultsContainer.innerHTML = '';
+        
         logs.innerHTML = '';
         progressBarFill.style.width = '0%';
         progressText.textContent = '正在初始化...';
@@ -461,9 +473,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const singleResult = await singleResultResponse.json();
                     displaySingleResult(singleResult);
                 } else {
+                    // 如果無法獲取詳細結果，顯示檔案列表
                     displayResults(files, taskId);
                 }
             } else {
+                // Excel 批次驗證結果
                 displayResults(files, taskId);
             }
         } catch (error) {
@@ -473,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displaySingleResult(result) {
-        resultsContainer.innerHTML = ''; // Clear previous results
+        singleResultsContainer.innerHTML = ''; // Clear previous results
         
         const resultCard = document.createElement('div');
         resultCard.className = 'single-result-card';
@@ -551,14 +565,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         
-        resultsContainer.appendChild(resultCard);
-        resultsSection.classList.remove('hidden');
+        singleResultsContainer.appendChild(resultCard);
+        singleResultsSection.classList.remove('hidden');
     }
 
     function displayResults(files, taskId) {
-        resultsContainer.innerHTML = ''; // Clear previous results
+        excelResultsContainer.innerHTML = ''; // Clear previous results
         if (files.length === 0) {
-            resultsContainer.innerHTML = '<p>沒有生成任何結果檔案。</p>';
+            excelResultsContainer.innerHTML = '<p>沒有生成任何結果檔案。</p>';
         } else {
             files.forEach(fileName => {
                 const card = document.createElement('div');
@@ -571,10 +585,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn btn-secondary" data-task-id="${taskId}" data-filename="${fileName}">預覽</button>
                     </div>
                 `;
-                resultsContainer.appendChild(card);
+                excelResultsContainer.appendChild(card);
             });
         }
-        resultsSection.classList.remove('hidden');
+        excelResultsSection.classList.remove('hidden');
     }
 
     function showError(message) {
@@ -587,29 +601,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Modal Logic ---
 
-    // Open modal
-    resultsContainer.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('btn-secondary') && e.target.textContent === '預覽') {
-            const taskId = e.target.dataset.taskId;
-            const filename = e.target.dataset.filename;
-            
-            modalTitle.textContent = `預覽: ${filename}`;
-            modalBody.innerHTML = '<p>正在載入預覽...</p>';
-            modal.style.display = 'flex';
+    // Open modal for both result containers
+    function setupPreviewListeners(container) {
+        container.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('btn-secondary') && e.target.textContent === '預覽') {
+                const taskId = e.target.dataset.taskId;
+                const filename = e.target.dataset.filename;
+                
+                modalTitle.textContent = `預覽: ${filename}`;
+                modalBody.innerHTML = '<p>正在載入預覽...</p>';
+                modal.style.display = 'flex';
 
-            try {
-                const response = await fetch(`/api/preview/${taskId}/${filename}`);
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.statusText}`);
+                try {
+                    const response = await fetch(`/api/preview/${taskId}/${filename}`);
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.statusText}`);
+                    }
+                    const previewContent = await response.text();
+                    modalBody.innerHTML = previewContent;
+                } catch (error) {
+                    console.error('Preview error:', error);
+                    modalBody.innerHTML = `<p style="color: var(--error-color);">無法載入預覽: ${error.message}</p>`;
                 }
-                const previewContent = await response.text();
-                modalBody.innerHTML = previewContent;
-            } catch (error) {
-                console.error('Preview error:', error);
-                modalBody.innerHTML = `<p style="color: var(--error-color);">無法載入預覽: ${error.message}</p>`;
             }
-        }
-    });
+        });
+    }
+
+    // Setup preview listeners for both result containers
+    setupPreviewListeners(excelResultsContainer);
+    setupPreviewListeners(singleResultsContainer);
 
     // Close modal
     function hideModal() {
@@ -635,11 +655,21 @@ function resetForm() {
     // 重置表單
     document.getElementById('upload-form').reset();
     
-    // 隱藏結果區域
-    const resultsSection = document.getElementById('results-section');
+    // 隱藏所有結果區域
+    const excelResultsSection = document.getElementById('excel-results-section');
+    const singleResultsSection = document.getElementById('single-results-section');
     const statusSection = document.getElementById('status-section');
-    if (resultsSection) resultsSection.classList.add('hidden');
+    
+    if (excelResultsSection) excelResultsSection.classList.add('hidden');
+    if (singleResultsSection) singleResultsSection.classList.add('hidden');
     if (statusSection) statusSection.classList.add('hidden');
+    
+    // 清空結果容器
+    const excelResultsContainer = document.getElementById('excel-results-container');
+    const singleResultsContainer = document.getElementById('single-results-container');
+    
+    if (excelResultsContainer) excelResultsContainer.innerHTML = '';
+    if (singleResultsContainer) singleResultsContainer.innerHTML = '';
     
     // 重置按鈕狀態
     const submitBtn = document.getElementById('submit-btn');
