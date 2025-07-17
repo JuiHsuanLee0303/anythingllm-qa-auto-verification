@@ -85,8 +85,16 @@ const i18n = {
         'tip_1': '確保問題和標準答案欄位都有內容',
         'tip_2': '標準答案建議包含完整的解釋，這樣能獲得更好的相似度評估',
         'tip_3': '可以根據需要添加多個工作表，系統會處理所有工作表',
-        'tip_4': '檔案大小建議不超過 10MB',
-        'tip_5': '支援的檔案格式：.xlsx',
+        'tip_4': '檔案大小建議不超過 50MB',
+        'tip_5': '支援的檔案格式：.xlsx, .xlsm, .xltx, .xltm',
+        
+        // 檔案驗證訊息
+        'file_validation_success': '✅ 檔案格式正確',
+        'file_validation_error_format': '❌ 不支援的檔案格式',
+        'file_validation_error_size': '❌ 檔案太大',
+        'file_validation_error_empty': '❌ 檔案是空的',
+        'file_validation_supported_formats': '支援的格式',
+        'file_validation_max_size': '最大支援',
         
         // 按鈕
         'start_validation': '🚀 開始驗證',
@@ -198,8 +206,16 @@ const i18n = {
         'tip_1': 'Ensure both question and standard answer fields have content',
         'tip_2': 'Standard answers should include complete explanations for better similarity evaluation',
         'tip_3': 'You can add multiple worksheets as needed, the system will process all worksheets',
-        'tip_4': 'File size should not exceed 10MB',
-        'tip_5': 'Supported file format: .xlsx',
+        'tip_4': 'File size should not exceed 50MB',
+        'tip_5': 'Supported file formats: .xlsx, .xlsm, .xltx, .xltm',
+        
+        // 檔案驗證訊息
+        'file_validation_success': '✅ File format is correct',
+        'file_validation_error_format': '❌ Unsupported file format',
+        'file_validation_error_size': '❌ File too large',
+        'file_validation_error_empty': '❌ File is empty',
+        'file_validation_supported_formats': 'Supported formats',
+        'file_validation_max_size': 'Maximum supported',
         
         // 按鈕
         'start_validation': '🚀 Start Verification',

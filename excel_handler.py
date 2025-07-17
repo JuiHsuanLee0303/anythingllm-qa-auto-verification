@@ -1,6 +1,7 @@
 import pandas as pd
 from typing import List, Dict, Tuple
 import openpyxl
+import os
 from logger import Logger # Assuming Logger is in a file named logger.py
 
 class ExcelHandler:
@@ -10,14 +11,44 @@ class ExcelHandler:
         """
         self.file_path = file_path
         self.logger = logger
+        
+        # 檢查檔案是否存在
+        if not os.path.exists(file_path):
+            error_msg = f"❌ Excel 檔案不存在: {file_path}"
+            self.logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
+        
+        # 檢查檔案副檔名
+        file_extension = os.path.splitext(file_path)[1].lower()
+        supported_extensions = ['.xlsx', '.xlsm', '.xltx', '.xltm']
+        
+        if file_extension not in supported_extensions:
+            error_msg = f"❌ 不支援的檔案格式: {file_extension}。支援的格式: {', '.join(supported_extensions)}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        # 檢查檔案大小
+        file_size = os.path.getsize(file_path)
+        if file_size == 0:
+            error_msg = f"❌ Excel 檔案是空的: {file_path}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        # 嘗試載入檔案
         try:
             self.workbook = openpyxl.load_workbook(file_path)
-            self.logger.info(f"✅ 成功載入 Excel 檔案: {file_path}")
+            self.logger.info(f"✅ 成功載入 Excel 檔案: {file_path} (大小: {file_size} bytes)")
+        except openpyxl.utils.exceptions.InvalidFileException as e:
+            error_msg = f"❌ 檔案格式錯誤: {file_path}。請確認檔案是有效的 Excel 檔案 (.xlsx, .xlsm, .xltx, .xltm)，並且可以用 Excel 開啟。錯誤詳情: {str(e)}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
         except FileNotFoundError:
-            self.logger.error(f"❌ Excel 檔案未找到: {file_path}", exc_info=True)
+            error_msg = f"❌ Excel 檔案未找到: {file_path}"
+            self.logger.error(error_msg)
             raise
         except Exception as e:
-            self.logger.error(f"❌ 載入 Excel 檔案時發生錯誤: {e}", exc_info=True)
+            error_msg = f"❌ 載入 Excel 檔案時發生錯誤: {e}"
+            self.logger.error(error_msg, exc_info=True)
             raise
 
     def get_all_sheets(self) -> List[str]:

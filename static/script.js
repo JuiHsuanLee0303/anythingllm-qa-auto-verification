@@ -317,6 +317,67 @@ document.addEventListener('DOMContentLoaded', () => {
     excelModeBtn.addEventListener('click', () => switchMode('excel'));
     singleModeBtn.addEventListener('click', () => switchMode('single'));
 
+    // Excel file validation
+    const excelFileInput = document.getElementById('excel_file');
+    const fileValidationMessage = document.getElementById('file-validation-message');
+    
+    excelFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            validateExcelFile(file);
+        } else {
+            fileValidationMessage.textContent = '';
+            fileValidationMessage.className = '';
+        }
+    });
+
+    function validateExcelFile(file) {
+        const supportedExtensions = ['.xlsx', '.xlsm', '.xltx', '.xltm'];
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        
+        // 檢查檔案副檔名
+        if (!supportedExtensions.includes(fileExtension)) {
+            const errorMsg = window.i18n ? 
+                `${window.i18n.t('file_validation_error_format')}: ${fileExtension}. ${window.i18n.t('file_validation_supported_formats')}: ${supportedExtensions.join(', ')}` :
+                `❌ 不支援的檔案格式: ${fileExtension}。支援的格式: ${supportedExtensions.join(', ')}`;
+            fileValidationMessage.textContent = errorMsg;
+            fileValidationMessage.className = 'error';
+            excelFileInput.value = ''; // 清空選擇
+            return false;
+        }
+        
+        // 檢查檔案大小 (限制為 50MB)
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxSize) {
+            const errorMsg = window.i18n ? 
+                `${window.i18n.t('file_validation_error_size')}: ${(file.size / 1024 / 1024).toFixed(2)}MB. ${window.i18n.t('file_validation_max_size')}: 50MB` :
+                `❌ 檔案太大: ${(file.size / 1024 / 1024).toFixed(2)}MB。最大支援: 50MB`;
+            fileValidationMessage.textContent = errorMsg;
+            fileValidationMessage.className = 'error';
+            excelFileInput.value = ''; // 清空選擇
+            return false;
+        }
+        
+        // 檢查檔案是否為空
+        if (file.size === 0) {
+            const errorMsg = window.i18n ? 
+                window.i18n.t('file_validation_error_empty') :
+                '❌ 檔案是空的';
+            fileValidationMessage.textContent = errorMsg;
+            fileValidationMessage.className = 'error';
+            excelFileInput.value = ''; // 清空選擇
+            return false;
+        }
+        
+        // 驗證通過
+        const successMsg = window.i18n ? 
+            `${window.i18n.t('file_validation_success')}: ${file.name} (${(file.size / 1024).toFixed(2)}KB)` :
+            `✅ 檔案格式正確: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`;
+        fileValidationMessage.textContent = successMsg;
+        fileValidationMessage.className = 'success';
+        return true;
+    }
+
     toggleAdvancedBtn.addEventListener('click', () => {
         const fieldset = toggleAdvancedBtn.parentElement;
         fieldset.classList.toggle('open');

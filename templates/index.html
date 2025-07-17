@@ -110,7 +110,8 @@
                 <div id="excel-mode" class="mode-content active">
                     <div class="form-group">
                         <label for="excel_file" data-i18n="step_4_title">步驟 4：上傳驗證問答集 (Excel)<span class="required-star">*</span></label>
-                        <input type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
+                        <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xlsm,.xltx,.xltm" required>
+                        <div id="file-validation-message" class="validation-message"></div>
                     </div>
                     
                     <div class="excel-format-help">
