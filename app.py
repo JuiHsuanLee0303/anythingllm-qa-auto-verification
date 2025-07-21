@@ -431,19 +431,24 @@ def stream(task_id: str):
 
     def event_stream():
         while True:
-            message_str = log_queue.get()
-            if message_str == "<<TASK_DONE>>":
-                break
-            
-            # 確保傳送給前端的永遠是標準的 JSON 格式
             try:
-                # 嘗試解析，如果成功，表示它已經是 JSON 字串
-                json.loads(message_str)
-                yield f"data: {message_str}\n\n"
-            except json.JSONDecodeError:
-                # 如果解析失敗，表示它是一個普通字串，我們將其包裝成 JSON
-                wrapped_message = json.dumps({"log": message_str})
-                yield f"data: {wrapped_message}\n\n"
+                # 使用帶超時的隊列操作，避免阻塞
+                message_str = log_queue.get(timeout=25)  # 25秒超時，留5秒給Gunicorn
+                if message_str == "<<TASK_DONE>>":
+                    break
+                
+                # 確保傳送給前端的永遠是標準的 JSON 格式
+                try:
+                    # 嘗試解析，如果成功，表示它已經是 JSON 字串
+                    json.loads(message_str)
+                    yield f"data: {message_str}\n\n"
+                except json.JSONDecodeError:
+                    # 如果解析失敗，表示它是一個普通字串，我們將其包裝成 JSON
+                    wrapped_message = json.dumps({"log": message_str})
+                    yield f"data: {wrapped_message}\n\n"
+            except queue.Empty:
+                # 超時時發送心跳，保持連接活躍
+                yield f"data: {json.dumps({'heartbeat': True, 'timestamp': time.time()})}\n\n"
     
     return Response(event_stream(), mimetype='text/event-stream')
 
