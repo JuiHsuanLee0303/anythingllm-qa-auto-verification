@@ -41,6 +41,22 @@ tasks = {}
 # 建立一個給 Flask 應用本身使用的 logger
 app_logger = get_logger("FlaskWebApp")
 
+def cleanup_expired_tasks():
+    """清理過期的任務（超過1小時）"""
+    current_time = time.time()
+    expired_tasks = []
+    for task_id, task_info in tasks.items():
+        created_time = task_info.get('created_time', 0)
+        if current_time - created_time > 3600:  # 1小時過期
+            expired_tasks.append(task_id)
+    
+    for task_id in expired_tasks:
+        try:
+            del tasks[task_id]
+            app_logger.info(f"已清理過期任務: {task_id}")
+        except KeyError:
+            pass  # 任務可能已被其他進程清理
+
 # --- Helper Function for Threading ---
 
 def run_verification_threaded(task_id: str, config: Config, logger, args: argparse.Namespace, advanced_options: dict):
@@ -115,7 +131,8 @@ def verify():
         # 建立任務狀態追蹤
         tasks[task_id] = {
             'status': 'pending',
-            'queue': queue.Queue()
+            'queue': queue.Queue(),
+            'created_time': time.time()
         }
         
         # 載入配置
@@ -186,7 +203,8 @@ def verify_single():
         # 建立任務狀態追蹤
         tasks[task_id] = {
             'status': 'pending',
-            'queue': queue.Queue()
+            'queue': queue.Queue(),
+            'created_time': time.time()
         }
         
         # 載入配置
@@ -425,16 +443,37 @@ def index():
 @app.route('/stream/<task_id>')
 def stream(task_id: str):
     """此端點為客戶端提供 Server-Sent Events (SSE)"""
+    # 清理過期任務
+    cleanup_expired_tasks()
+    
     log_queue = tasks.get(task_id, {}).get('queue')
     if not log_queue:
         return Response("錯誤：找不到任務佇列或任務不存在。", status=404)
 
     def event_stream():
+        start_time = time.time()
+        last_heartbeat = start_time
+        
         while True:
             try:
-                # 使用帶超時的隊列操作，避免阻塞
-                message_str = log_queue.get(timeout=25)  # 25秒超時，留5秒給Gunicorn
+                # 檢查任務是否仍然存在
+                if task_id not in tasks:
+                    yield f"data: {json.dumps({'error': '任務不存在或已過期'})}\n\n"
+                    break
+                
+                # 檢查任務狀態
+                task_status = tasks[task_id].get('status', 'unknown')
+                if task_status == 'completed':
+                    yield f"data: {json.dumps({'status': 'completed', 'message': '任務已完成'})}\n\n"
+                    break
+                elif task_status == 'error':
+                    yield f"data: {json.dumps({'status': 'error', 'message': '任務執行失敗'})}\n\n"
+                    break
+                
+                # 使用更短的超時時間，避免 Gunicorn 超時
+                message_str = log_queue.get(timeout=10)  # 10秒超時
                 if message_str == "<<TASK_DONE>>":
+                    yield f"data: {json.dumps({'status': 'completed', 'message': '任務已完成'})}\n\n"
                     break
                 
                 # 確保傳送給前端的永遠是標準的 JSON 格式
@@ -446,9 +485,18 @@ def stream(task_id: str):
                     # 如果解析失敗，表示它是一個普通字串，我們將其包裝成 JSON
                     wrapped_message = json.dumps({"log": message_str})
                     yield f"data: {wrapped_message}\n\n"
+                    
             except queue.Empty:
-                # 超時時發送心跳，保持連接活躍
-                yield f"data: {json.dumps({'heartbeat': True, 'timestamp': time.time()})}\n\n"
+                current_time = time.time()
+                # 每10秒發送一次心跳
+                if current_time - last_heartbeat >= 10:
+                    yield f"data: {json.dumps({'heartbeat': True, 'timestamp': current_time})}\n\n"
+                    last_heartbeat = current_time
+                    
+                # 如果連接時間超過5分鐘，主動斷開
+                if current_time - start_time > 300:  # 5分鐘
+                    yield f"data: {json.dumps({'error': '連接超時，請重新連接'})}\n\n"
+                    break
     
     return Response(event_stream(), mimetype='text/event-stream')
 

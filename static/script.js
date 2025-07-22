@@ -559,6 +559,40 @@ document.addEventListener('DOMContentLoaded', () => {
         eventSource.onmessage = function(event) {
             const data = JSON.parse(event.data);
 
+            // 處理心跳消息
+            if (data.heartbeat) {
+                console.log('收到心跳消息:', new Date().toLocaleTimeString());
+                return;
+            }
+
+            // 處理錯誤消息
+            if (data.error) {
+                console.error('伺服器錯誤:', data.error);
+                showError(`伺服器錯誤: ${data.error}`);
+                eventSource.close();
+                setButtonLoading(false);
+                return;
+            }
+
+            // 處理狀態消息
+            if (data.status === 'completed') {
+                progressText.textContent = '任務完成！正在準備結果...';
+                progressBarFill.style.width = '100%';
+                eventSource.close();
+                setButtonLoading(false);
+                fetchResults(taskId);
+                return;
+            }
+
+            if (data.status === 'error') {
+                progressText.textContent = '任務執行失敗';
+                showError(`任務執行失敗: ${data.message || '未知錯誤'}`);
+                eventSource.close();
+                setButtonLoading(false);
+                return;
+            }
+
+            // 處理日誌消息
             if (data.log) {
                 const logEntry = document.createElement('div');
                 logEntry.textContent = data.log;
@@ -566,12 +600,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 logs.scrollTop = logs.scrollHeight; // Auto-scroll
             }
 
+            // 處理進度消息
             if (data.progress !== undefined) {
                 const progress = Math.round(data.progress);
                 progressBarFill.style.width = `${progress}%`;
                 progressText.textContent = data.status || `處理中... ${progress}%`;
             }
 
+            // 處理舊版本的完成狀態
             if (data.status === '完成') {
                 progressText.textContent = '任務完成！正在準備結果...';
                 progressBarFill.style.width = '100%';
@@ -583,9 +619,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         eventSource.onerror = function(err) {
             console.error('EventSource failed:', err);
-            showError('與伺服器的即時連線中斷，請重試。');
-            eventSource.close();
-            setButtonLoading(false);
+            
+            // 檢查是否為連接超時或中斷
+            if (eventSource.readyState === EventSource.CLOSED) {
+                showError('與伺服器的即時連線中斷，請重試。');
+                eventSource.close();
+                setButtonLoading(false);
+            } else if (eventSource.readyState === EventSource.CONNECTING) {
+                console.log('正在嘗試重新連接...');
+                // 可以添加重連邏輯
+            }
         };
     }
 
