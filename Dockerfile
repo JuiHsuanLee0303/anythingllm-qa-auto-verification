@@ -47,4 +47,4 @@ EXPOSE 5001
 # --max-requests 1000: Restart worker after 1000 requests to prevent memory leaks
 # --max-requests-jitter 100: Add randomness to max-requests to prevent all workers restarting at once
 # app:app: Specifies the module 'app' and the Flask instance 'app' within it.
-CMD ["gunicorn", "--workers", "1", "--bind", "0.0.0.0:5001", "--timeout", "300", "--keep-alive", "5", "--max-requests", "1000", "--max-requests-jitter", "100", "app:app"] 
+CMD ["gunicorn", "--workers", "1", "--bind", "0.0.0.0:5001", "--timeout", "3600", "--keep-alive", "5", "--max-requests", "1000", "--max-requests-jitter", "100", "app:app"] 

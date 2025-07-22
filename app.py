@@ -494,7 +494,7 @@ def stream(task_id: str):
                     last_heartbeat = current_time
                     
                 # 如果連接時間超過5分鐘，主動斷開
-                if current_time - start_time > 300:  # 5分鐘
+                if current_time - start_time > 3600:  # 60分鐘
                     yield f"data: {json.dumps({'error': '連接超時，請重新連接'})}\n\n"
                     break
     
