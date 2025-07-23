@@ -200,7 +200,7 @@ class QAVerificationSystem:
             self.logger.info(f"📋 處理工作表: {sheet_name}")
             # 在 Web 模式下禁用 tqdm 的視覺輸出，避免污染日誌
             with tqdm(total=len(qa_pairs), desc=f"處理中: {sheet_name}", unit="對", disable=web_mode) as pbar:
-                for row_index, (question, excel_answer) in enumerate(qa_pairs):
+                for row_index, (question, excel_answer, original_row_index) in enumerate(qa_pairs):
                     if web_mode:
                         self.logger.info(f"正在處理: {sheet_name} - 第 {row_index + 1}/{len(qa_pairs)} 筆")
                     
@@ -214,8 +214,8 @@ class QAVerificationSystem:
                         )
                         all_similarity_scores.append(similarity_scores)
                         
-                        excel_handler.write_llm_response(sheet_name, row_index, llm_response)
-                        excel_handler.write_similarity_scores(sheet_name, row_index, similarity_scores)
+                        excel_handler.write_llm_response(sheet_name, original_row_index, llm_response)
+                        excel_handler.write_similarity_scores(sheet_name, original_row_index, similarity_scores)
                         pbar.update(1)
                     else:
                         self.logger.warning(f"❌ 問題 '{question[:20]}...' 無法獲取 LLM 回答")

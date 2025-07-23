@@ -86,10 +86,8 @@ def run_verification_threaded(task_id: str, config: Config, logger, args: argpar
         run_verification(config, logger, args, web_mode=True)
         tasks[task_id]['status'] = 'completed'
 
-        # 將處理完的 Excel 檔案複製到輸出目錄
-        final_excel_path = os.path.join(args.output, os.path.basename(args.excel))
-        shutil.copy(args.excel, final_excel_path)
-        logger.info(f"結果 Excel 已複製到: {final_excel_path}")
+        # 驗證流程已經在 main.py 中處理了檔案儲存，這裡不需要額外的複製
+        logger.info(f"Task {task_id}: 驗證流程成功完成。")
         
         logger.info(f"Task {task_id}: 驗證流程成功完成。")
     except Exception as e:

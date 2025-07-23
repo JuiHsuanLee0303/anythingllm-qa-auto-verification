@@ -60,7 +60,7 @@ class ExcelHandler:
         """
         return self.workbook.sheetnames
     
-    def get_qa_pairs(self, sheet_name: str) -> List[Tuple[str, str]]:
+    def get_qa_pairs(self, sheet_name: str) -> List[Tuple[str, str, int]]:
         """
         Extract Q&A pairs from a specific sheet.
         First column is treated as questions, second column as answers.
@@ -70,7 +70,7 @@ class ExcelHandler:
             sheet_name (str): Name of the sheet to process
             
         Returns:
-            List[Tuple[str, str]]: List of (question, answer) pairs
+            List[Tuple[str, str, int]]: List of (question, answer, original_row_index) pairs
         """
         try:
             df = pd.read_excel(self.file_path, sheet_name=sheet_name, header=None)
@@ -84,9 +84,11 @@ class ExcelHandler:
             questions = df.iloc[:, 0].astype(str)
             answers = df.iloc[:, 1].astype(str)
             
-            # Filter out empty rows
-            qa_pairs = [(q.strip(), a.strip()) for q, a in zip(questions, answers) 
-                       if q.strip() and a.strip()]
+            # Filter out empty rows and keep original row indices
+            qa_pairs = []
+            for i, (q, a) in enumerate(zip(questions, answers)):
+                if q.strip() and a.strip():
+                    qa_pairs.append((q.strip(), a.strip(), i))
             
             return qa_pairs
         except Exception as e:
@@ -113,6 +115,7 @@ class ExcelHandler:
     def write_llm_response(self, sheet_name: str, row_index: int, llm_response: str) -> None:
         """
         Write LLM response to the third column. Does not save immediately.
+        row_index is the original row index from the Excel file (0-based).
         """
         try:
             sheet = self.workbook[sheet_name]
@@ -123,6 +126,7 @@ class ExcelHandler:
     def write_similarity_scores(self, sheet_name: str, row_index: int, similarity_scores: dict) -> None:
         """
         Write similarity scores. Does not save immediately.
+        row_index is the original row index from the Excel file (0-based).
         """
         try:
             sheet = self.workbook[sheet_name]
