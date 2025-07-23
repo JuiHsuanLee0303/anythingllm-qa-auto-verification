@@ -48,13 +48,13 @@ class QAVerificationSystem:
                 headers=self.config.get_headers()
             )
             response.raise_for_status()
-            self.logger.info("✅ API 金鑰驗證成功")
+            self.logger.info("[SUCCESS] API 金鑰驗證成功")
             return True
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"API 金鑰驗證失敗: {e}")
+            self.logger.error(f"[ERROR] API 金鑰驗證失敗: {e}")
             return False
         except Exception as e:
-            self.logger.error(f"API 金鑰驗證時發生錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] API 金鑰驗證時發生錯誤: {e}", exc_info=True)
             return False
 
     def get_workspace_slug(self, workspace_identifier: str) -> Optional[str]:
@@ -68,7 +68,7 @@ class QAVerificationSystem:
             Optional[str]: 工作區的 slug，如果未找到則返回 None
         """
         try:
-            self.logger.info(f"🔍 搜尋工作區: {workspace_identifier}")
+            self.logger.info(f"[INFO] 搜尋工作區: {workspace_identifier}")
             response = requests.get(
                 f'{self.config.api.base_url}/api/v1/workspaces',
                 headers=self.config.get_headers()
@@ -84,13 +84,13 @@ class QAVerificationSystem:
                         workspace.get('slug') == workspace_identifier):
                         found_slug = workspace.get('slug')
                         found_name = workspace.get('name')
-                        self.logger.info(f"✅ 找到工作區: {found_name} (slug: {found_slug})")
+                        self.logger.info(f"[SUCCESS] 找到工作區: {found_name} (slug: {found_slug})")
                         return found_slug
             
-            self.logger.info(f"❌ 工作區 '{workspace_identifier}' 不存在")
+            self.logger.warning(f"[WARNING] 工作區 '{workspace_identifier}' 不存在")
             return None
         except Exception as e:
-            self.logger.error(f"獲取工作區時發生錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] 獲取工作區時發生錯誤: {e}", exc_info=True)
             return None
         
     def create_workspace(self, workspace_name: str) -> Optional[str]:
@@ -104,7 +104,7 @@ class QAVerificationSystem:
             Optional[str]: 成功時返回工作區的 slug，失敗時返回 None
         """
         try:
-            self.logger.info(f"🔍 創建工作區: {workspace_name}")
+            self.logger.info(f"[INFO] 創建工作區: {workspace_name}")
             ws_config = self.config.workspace
             
             payload = {
@@ -131,20 +131,20 @@ class QAVerificationSystem:
             
             result = response.json().get('workspace')
             if not result or 'slug' not in result:
-                self.logger.error("API 回應中未包含工作區 slug")
+                self.logger.error("[ERROR] API 回應中未包含工作區 slug")
                 return None
                 
-            self.logger.info(f"✅ 成功創建工作區: {workspace_name}")
+            self.logger.info(f"[SUCCESS] 成功創建工作區: {workspace_name}")
             return result.get('slug')
             
         except requests.exceptions.Timeout:
-            self.logger.error("❌ 創建工作區失敗，請求超時")
+            self.logger.error("[ERROR] 創建工作區失敗，請求超時")
             return None
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"❌ 創建工作區失敗，網路錯誤: {e}")
+            self.logger.error(f"[ERROR] 創建工作區失敗，網路錯誤: {e}")
             return None
         except Exception as e:
-            self.logger.error(f"❌ 創建工作區失敗，發生錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] 創建工作區失敗，發生錯誤: {e}", exc_info=True)
             return None
     
     def send_chat_message(self, workspace_slug: str, message: str) -> Optional[Dict]:
@@ -175,7 +175,7 @@ class QAVerificationSystem:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            self.logger.error(f"聊天操作時發生錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] 聊天操作時發生錯誤: {e}", exc_info=True)
             return None
     
     def process_qa_pairs(self, workspace_slug: str, excel_handler: ExcelHandler, web_mode: bool = False) -> List[Dict[str, float]]:
@@ -194,15 +194,43 @@ class QAVerificationSystem:
         all_qa_pairs = excel_handler.get_all_qa_pairs()
         
         total_qa_pairs = sum(len(qa_pairs) for qa_pairs in all_qa_pairs.values())
-        self.logger.info(f"📋 開始處理 {total_qa_pairs} 個問答對")
+        self.logger.info(f"[INFO] 開始處理 {total_qa_pairs} 個問答對")
+
+        # 計算進度用的變數
+        processed_count = 0
+        total_sheets = len(all_qa_pairs)
+        current_sheet_index = 0
 
         for sheet_name, qa_pairs in all_qa_pairs.items():
-            self.logger.info(f"📋 處理工作表: {sheet_name}")
+            current_sheet_index += 1
+            self.logger.info(f"[INFO] 處理工作表: {sheet_name} ({current_sheet_index}/{total_sheets})")
+            
             # 在 Web 模式下禁用 tqdm 的視覺輸出，避免污染日誌
             with tqdm(total=len(qa_pairs), desc=f"處理中: {sheet_name}", unit="對", disable=web_mode) as pbar:
                 for row_index, (question, excel_answer, original_row_index) in enumerate(qa_pairs):
                     if web_mode:
-                        self.logger.info(f"正在處理: {sheet_name} - 第 {row_index + 1}/{len(qa_pairs)} 筆")
+                        # 計算詳細進度
+                        processed_count += 1
+                        overall_progress = (processed_count / total_qa_pairs) * 100
+                        sheet_progress = ((row_index + 1) / len(qa_pairs)) * 100
+                        
+                        # 發送詳細的進度資訊 (30-85% 範圍)
+                        progress_data = {
+                            "progress": 30 + (overall_progress * 0.55),  # 30-85% 範圍
+                            "status": f"處理中: {sheet_name} - 第 {row_index + 1}/{len(qa_pairs)} 筆 ({sheet_progress:.1f}%)",
+                            "detail": {
+                                "current_sheet": sheet_name,
+                                "current_sheet_index": current_sheet_index,
+                                "total_sheets": total_sheets,
+                                "current_item": row_index + 1,
+                                "total_items_in_sheet": len(qa_pairs),
+                                "processed_items": processed_count,
+                                "total_items": total_qa_pairs,
+                                "sheet_progress": sheet_progress,
+                                "overall_progress": overall_progress
+                            }
+                        }
+                        self.logger.info(f"[PROGRESS] 正在處理: {sheet_name} - 第 {row_index + 1}/{len(qa_pairs)} 筆", **progress_data)
                     
                     response = self.send_chat_message(workspace_slug, question)
                     if response and 'textResponse' in response:
@@ -218,10 +246,10 @@ class QAVerificationSystem:
                         excel_handler.write_similarity_scores(sheet_name, original_row_index, similarity_scores)
                         pbar.update(1)
                     else:
-                        self.logger.warning(f"❌ 問題 '{question[:20]}...' 無法獲取 LLM 回答")
+                        self.logger.warning(f"[WARNING] 問題 '{question[:20]}...' 無法獲取 LLM 回答")
                         pbar.update(1)
         
-        self.logger.info(f"✅ 問答對處理完成")
+        self.logger.info(f"[SUCCESS] 問答對處理完成")
 
         return all_similarity_scores
     
@@ -230,10 +258,10 @@ class QAVerificationSystem:
         上傳指定目錄中的所有支援文件到 AnythingLLM
         """
         try:
-            self.logger.info(f"📤 開始從目錄: '{directory}' 上傳文件")
+            self.logger.info(f"[INFO] 開始從目錄: '{directory}' 上傳文件")
             
             if not os.path.isdir(directory):
-                self.logger.error(f"錯誤: 目錄 '{directory}' 不存在。")
+                self.logger.error(f"[ERROR] 目錄 '{directory}' 不存在。")
                 return False
 
             file_paths = []
@@ -241,13 +269,13 @@ class QAVerificationSystem:
                 file_paths.extend(glob.glob(os.path.join(directory, pattern), recursive=True))
 
             if not file_paths:
-                self.logger.warning("在指定目錄中找不到任何支援的檔案。")
+                self.logger.warning("[WARNING] 在指定目錄中找不到任何支援的檔案。")
                 return True
 
-            self.logger.info(f"找到 {len(file_paths)} 個要上傳的檔案。")
+            self.logger.info(f"[INFO] 找到 {len(file_paths)} 個要上傳的檔案。")
 
             with tqdm(total=len(file_paths), desc="上傳檔案", unit="個") as pbar:
-                for file_path in file_paths:
+                for i, file_path in enumerate(file_paths):
                     try:
                         with open(file_path, 'rb') as f:
                             files = {'file': (os.path.basename(file_path), f)}
@@ -257,15 +285,23 @@ class QAVerificationSystem:
                                 files=files
                             )
                             response.raise_for_status()
-                            self.logger.info(f"✅ 成功上傳檔案: {os.path.basename(file_path)}")
+                            self.logger.info(f"[SUCCESS] 成功上傳檔案: {os.path.basename(file_path)}")
                     except Exception as e:
-                        self.logger.error(f"❌ 上傳檔案失敗: {os.path.basename(file_path)} - {e}")
+                        self.logger.error(f"[ERROR] 上傳檔案失敗: {os.path.basename(file_path)} - {e}")
                     finally:
                         pbar.update(1)
+                        
+                        # 在 Web 模式下顯示上傳進度 (20-30% 範圍)
+                        if hasattr(self.logger, 'logger') and hasattr(self.logger.logger, 'handlers'):
+                            upload_progress = ((i + 1) / len(file_paths)) * 100
+                            overall_progress = 20 + (upload_progress * 0.1)  # 20-30% 範圍
+                            self.logger.info(f"[PROGRESS] 上傳進度: {i + 1}/{len(file_paths)} ({upload_progress:.1f}%)", 
+                                           progress=overall_progress, 
+                                           status=f"上傳檔案: {os.path.basename(file_path)} ({upload_progress:.1f}%)")
             
             return True
         except Exception as e:
-            self.logger.error(f"上傳文件時發生嚴重錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] 上傳文件時發生嚴重錯誤: {e}", exc_info=True)
             return False
 
 def run_verification(config: Config, logger: Logger, args: argparse.Namespace, web_mode: bool = False):
@@ -278,43 +314,56 @@ def run_verification(config: Config, logger: Logger, args: argparse.Namespace, w
         args (argparse.Namespace): 命令列參數
         web_mode (bool): 是否為 Web 模式，影響日誌和進度條顯示
     """
-    logger.info("🚀 QA 驗證系統啟動")
-    logger.info(f"工作區: {args.workspace}", progress=5, status="初始化...")
+    # 進度分配：
+    # 0-10%: 初始化
+    # 10-20%: API驗證和工作區準備
+    # 20-30%: 文件上傳（如果有）
+    # 30-85%: 問答對處理（主要階段）
+    # 85-95%: 生成分析圖表
+    # 95-100%: 儲存結果
+    
+    logger.info("[START] QA 驗證系統啟動", progress=0, status="系統初始化中...")
+    logger.info(f"[INFO] 工作區: {args.workspace}", progress=5, status="載入配置...")
 
     system = QAVerificationSystem(config, logger)
     
     # 1. 驗證 API 金鑰
+    logger.info("[INFO] 驗證 API 金鑰...", progress=10, status="驗證 API 金鑰...")
     if not system.validate_api_key():
-        logger.error("❌ API 金鑰無效，終止程序。")
+        logger.error("[ERROR] API 金鑰無效，終止程序。")
         return
 
     # 2. 獲取或創建工作區
+    logger.info("[INFO] 搜尋工作區...", progress=12, status="搜尋工作區...")
     workspace_slug = system.get_workspace_slug(args.workspace)
     if not workspace_slug:
+        logger.info("[INFO] 創建新工作區...", progress=14, status="創建新工作區...")
         workspace_slug = system.create_workspace(args.workspace)
     
     if not workspace_slug:
-        logger.error("❌ 無法獲取或創建工作區，終止程序。")
+        logger.error("[ERROR] 無法獲取或創建工作區，終止程序。")
         return
         
-    logger.info(f"✅ 工作區 '{args.workspace}' (slug: {workspace_slug}) 已就緒", progress=15, status="準備上傳文件...")
+    logger.info(f"[SUCCESS] 工作區 '{args.workspace}' (slug: {workspace_slug}) 已就緒", progress=20, status="工作區準備完成")
     
     # 3. 處理文件上傳 (如果提供了目錄)
     if args.directory and os.path.isdir(args.directory):
+        logger.info("[INFO] 開始上傳參考文件...", progress=20, status="上傳參考文件...")
         if not system.upload_documents(workspace_slug, args.directory):
-            logger.warning("⚠️ 文件上傳過程中出現問題，但仍會繼續處理問答對。")
+            logger.warning("[WARNING] 文件上傳過程中出現問題，但仍會繼續處理問答對。")
+        logger.info("[SUCCESS] 文件上傳完成", progress=30, status="文件上傳完成")
     else:
-        logger.info("ℹ️ 未提供參考文件目錄或目錄無效，跳過文件上傳步驟。")
-
-    logger.info("step:3", progress=30, status="正在處理問答對...")
+        logger.info("[INFO] 未提供參考文件目錄或目錄無效，跳過文件上傳步驟。", progress=30, status="跳過文件上傳")
 
     # 4. 處理 Excel 中的問答對
+    logger.info("[INFO] 開始處理問答對...", progress=30, status="開始處理問答對...")
     excel_handler = ExcelHandler(args.excel, logger)
     all_similarity_scores = system.process_qa_pairs(workspace_slug, excel_handler, web_mode=web_mode)
     
-    logger.info(f"✅ 成功處理 {excel_handler.get_total_qa_pairs()} 個問答對", progress=80, status="生成分析圖表...")
+    logger.info(f"[SUCCESS] 成功處理 {excel_handler.get_total_qa_pairs()} 個問答對", progress=85, status="問答對處理完成")
     
     # 5. 生成總結圖表
+    logger.info("[INFO] 生成分析圖表...", progress=85, status="生成分析圖表...")
     output_dir = args.output
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -325,22 +374,23 @@ def run_verification(config: Config, logger: Logger, args: argparse.Namespace, w
                 all_similarity_scores, 
                 output_dir
             )
-            logger.info(f"📊 分析報告已生成於 '{output_dir}' 目錄。")
+            logger.info(f"[SUCCESS] 分析報告已生成於 '{output_dir}' 目錄。", progress=95, status="分析圖表生成完成")
         else:
-            logger.warning("沒有任何問答對被處理，無法生成報告。")
+            logger.warning("[WARNING] 沒有任何問答對被處理，無法生成報告。", progress=95, status="跳過圖表生成")
             
     except Exception as e:
-        logger.error(f"❌ 生成圖表時發生錯誤: {e}", exc_info=True)
+        logger.error(f"[ERROR] 生成圖表時發生錯誤: {e}", exc_info=True)
     
     # 6. 儲存包含結果的 Excel 檔案
+    logger.info("[INFO] 儲存結果檔案...", progress=95, status="儲存結果檔案...")
     output_excel_path = os.path.join(output_dir, os.path.basename(args.excel))
     try:
         excel_handler.save_workbook(output_excel_path)
-        logger.info(f"💾 更新後的 Excel 檔案已儲存至: {output_excel_path}", progress=100, status="完成")
+        logger.info(f"[SUCCESS] 更新後的 Excel 檔案已儲存至: {output_excel_path}", progress=100, status="完成")
     except Exception as e:
-        logger.error(f"❌ 儲存 Excel 檔案時發生錯誤: {e}", exc_info=True)
+        logger.error(f"[ERROR] 儲存 Excel 檔案時發生錯誤: {e}", exc_info=True)
 
-    logger.info("🎉 QA 驗證流程全部完成！")
+    logger.info("[COMPLETE] QA 驗證流程全部完成！")
 
 def run_single_verification(config: Config, logger: Logger, args: argparse.Namespace, question: str, standard_answer: str, web_mode: bool = False):
     """

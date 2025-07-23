@@ -66,32 +66,32 @@ def run_verification_threaded(task_id: str, config: Config, logger, args: argpar
         # --- Override config with advanced options from frontend ---
         if advanced_options.get('api_url'):
             config.api.base_url = advanced_options['api_url']
-            logger.info(f"使用前端設定的 API URL: {config.api.base_url}")
+            logger.info(f"[INFO] 使用前端設定的 API URL: {config.api.base_url}")
         
         if advanced_options.get('api_key'):
             config.api.api_key = advanced_options['api_key']
-            logger.info("使用前端提供的 API Key。")
+            logger.info("[INFO] 使用前端提供的 API Key。")
 
-        if advanced_options.get('model'):
-            config.workspace.model = advanced_options['model']
-            logger.info(f"使用前端設定的 LLM 模型: {config.workspace.model}")
+        # if advanced_options.get('model'):
+        #     config.workspace.model = advanced_options['model']
+        #     logger.info(f"[INFO] 使用前端設定的 LLM 模型: {config.workspace.model}")
 
-        if advanced_options.get('similarity_threshold'):
-            config.analyzer.similarity_threshold = float(advanced_options['similarity_threshold'])
-            logger.info(f"使用前端設定的相似度閾值: {config.analyzer.similarity_threshold}")
+        # if advanced_options.get('similarity_threshold'):
+        #     config.analyzer.similarity_threshold = float(advanced_options['similarity_threshold'])
+        #     logger.info(f"使用前端設定的相似度閾值: {config.analyzer.similarity_threshold}")
         # --- End of config override ---
 
         tasks[task_id]['status'] = 'running'
-        logger.info(f"Task {task_id}: 驗證流程開始。")
+        logger.info(f"[INFO] Task {task_id}: 驗證流程開始。")
         run_verification(config, logger, args, web_mode=True)
         tasks[task_id]['status'] = 'completed'
 
         # 驗證流程已經在 main.py 中處理了檔案儲存，這裡不需要額外的複製
-        logger.info(f"Task {task_id}: 驗證流程成功完成。")
+        logger.info(f"[INFO] Task {task_id}: 驗證流程成功完成。")
         
-        logger.info(f"Task {task_id}: 驗證流程成功完成。")
+        logger.info(f"[INFO] Task {task_id}: 驗證流程成功完成。")
     except Exception as e:
-        logger.error(f"Task {task_id}: 驗證流程發生錯誤: {e}", exc_info=True)
+        logger.error(f"[ERROR] Task {task_id}: 驗證流程發生錯誤: {e}", exc_info=True)
         tasks[task_id]['status'] = 'error'
     finally:
         # 發送結束信號
@@ -166,11 +166,11 @@ def verify():
         thread.daemon = True
         thread.start()
         
-        app_logger.info(f"Task {task_id}: 已啟動 Excel 驗證任務")
+        app_logger.info(f"[INFO] Task {task_id}: 已啟動 Excel 驗證任務")
         return jsonify({"task_id": task_id, "message": "驗證任務已啟動"})
         
     except Exception as e:
-        app_logger.error(f"驗證請求處理錯誤: {e}", exc_info=True)
+        app_logger.error(f"[ERROR] 驗證請求處理錯誤: {e}", exc_info=True)
         return jsonify({"error": f"處理請求時發生錯誤: {str(e)}"}), 500
 
 @app.route('/api/verify_single', methods=['POST'])
@@ -230,11 +230,11 @@ def verify_single():
         thread.daemon = True
         thread.start()
         
-        app_logger.info(f"Task {task_id}: 已啟動單筆文字驗證任務")
+        app_logger.info(f"[INFO] Task {task_id}: 已啟動單筆文字驗證任務")
         return jsonify({"task_id": task_id, "message": "驗證任務已啟動"})
         
     except Exception as e:
-        app_logger.error(f"單筆驗證請求處理錯誤: {e}", exc_info=True)
+        app_logger.error(f"[ERROR] 單筆驗證請求處理錯誤: {e}", exc_info=True)
         return jsonify({"error": f"處理請求時發生錯誤: {str(e)}"}), 500
 
 def run_single_verification_threaded(task_id: str, config: Config, logger, workspace: str, question: str, standard_answer: str, advanced_options: dict):
@@ -244,19 +244,19 @@ def run_single_verification_threaded(task_id: str, config: Config, logger, works
         # --- Override config with advanced options from frontend ---
         if advanced_options.get('api_url'):
             config.api.base_url = advanced_options['api_url']
-            logger.info(f"使用前端設定的 API URL: {config.api.base_url}")
+            logger.info(f"[INFO] 使用前端設定的 API URL: {config.api.base_url}")
         
         if advanced_options.get('api_key'):
             config.api.api_key = advanced_options['api_key']
-            logger.info("使用前端提供的 API Key。")
+            logger.info("[INFO] 使用前端提供的 API Key。")
 
         if advanced_options.get('model'):
             config.workspace.model = advanced_options['model']
-            logger.info(f"使用前端設定的 LLM 模型: {config.workspace.model}")
+            logger.info(f"[INFO] 使用前端設定的 LLM 模型: {config.workspace.model}")
 
         if advanced_options.get('similarity_threshold'):
             config.analyzer.similarity_threshold = float(advanced_options['similarity_threshold'])
-            logger.info(f"使用前端設定的相似度閾值: {config.analyzer.similarity_threshold}")
+            logger.info(f"[INFO] 使用前端設定的相似度閾值: {config.analyzer.similarity_threshold}")
         # --- End of config override ---
 
         tasks[task_id]['status'] = 'running'
@@ -486,8 +486,8 @@ def stream(task_id: str):
                     
             except queue.Empty:
                 current_time = time.time()
-                # 每10秒發送一次心跳
-                if current_time - last_heartbeat >= 10:
+                # 每5秒發送一次心跳
+                if current_time - last_heartbeat >= 5:
                     yield f"data: {json.dumps({'heartbeat': True, 'timestamp': current_time})}\n\n"
                     last_heartbeat = current_time
                     

@@ -14,7 +14,7 @@ class ExcelHandler:
         
         # 檢查檔案是否存在
         if not os.path.exists(file_path):
-            error_msg = f"❌ Excel 檔案不存在: {file_path}"
+            error_msg = f"[ERROR] Excel 檔案不存在: {file_path}"
             self.logger.error(error_msg)
             raise FileNotFoundError(error_msg)
         
@@ -23,31 +23,31 @@ class ExcelHandler:
         supported_extensions = ['.xlsx', '.xlsm', '.xltx', '.xltm']
         
         if file_extension not in supported_extensions:
-            error_msg = f"❌ 不支援的檔案格式: {file_extension}。支援的格式: {', '.join(supported_extensions)}"
+            error_msg = f"[ERROR] 不支援的檔案格式: {file_extension}。支援的格式: {', '.join(supported_extensions)}"
             self.logger.error(error_msg)
             raise ValueError(error_msg)
         
         # 檢查檔案大小
         file_size = os.path.getsize(file_path)
         if file_size == 0:
-            error_msg = f"❌ Excel 檔案是空的: {file_path}"
+            error_msg = f"[ERROR] Excel 檔案是空的: {file_path}"
             self.logger.error(error_msg)
             raise ValueError(error_msg)
         
         # 嘗試載入檔案
         try:
             self.workbook = openpyxl.load_workbook(file_path)
-            self.logger.info(f"✅ 成功載入 Excel 檔案: {file_path} (大小: {file_size} bytes)")
+            self.logger.info(f"[INFO] 成功載入 Excel 檔案: {file_path} (大小: {file_size} bytes)")
         except openpyxl.utils.exceptions.InvalidFileException as e:
-            error_msg = f"❌ 檔案格式錯誤: {file_path}。請確認檔案是有效的 Excel 檔案 (.xlsx, .xlsm, .xltx, .xltm)，並且可以用 Excel 開啟。錯誤詳情: {str(e)}"
+            error_msg = f"[ERROR] 檔案格式錯誤: {file_path}。請確認檔案是有效的 Excel 檔案 (.xlsx, .xlsm, .xltx, .xltm)，並且可以用 Excel 開啟。錯誤詳情: {str(e)}"
             self.logger.error(error_msg)
             raise ValueError(error_msg)
         except FileNotFoundError:
-            error_msg = f"❌ Excel 檔案未找到: {file_path}"
+            error_msg = f"[ERROR] Excel 檔案未找到: {file_path}"
             self.logger.error(error_msg)
             raise
         except Exception as e:
-            error_msg = f"❌ 載入 Excel 檔案時發生錯誤: {e}"
+            error_msg = f"[ERROR] 載入 Excel 檔案時發生錯誤: {e}"
             self.logger.error(error_msg, exc_info=True)
             raise
 
@@ -77,7 +77,7 @@ class ExcelHandler:
             
             # Ensure there are at least 2 columns
             if len(df.columns) < 2:
-                self.logger.warning(f"⚠️ 工作表 '{sheet_name}' 的欄數少於 2，將被跳過。")
+                self.logger.warning(f"[WARNING] 工作表 '{sheet_name}' 的欄數少於 2，將被跳過。")
                 return []
             
             # Get first two columns
@@ -92,7 +92,7 @@ class ExcelHandler:
             
             return qa_pairs
         except Exception as e:
-            self.logger.error(f"❌ 處理工作表 '{sheet_name}' 時發生錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] 處理工作表 '{sheet_name}' 時發生錯誤: {e}", exc_info=True)
             return []
     
     def get_all_qa_pairs(self) -> Dict[str, List[Tuple[str, str]]]:
@@ -109,7 +109,7 @@ class ExcelHandler:
                 result[sheet_name] = self.get_qa_pairs(sheet_name)
             return result
         except Exception as e:
-            self.logger.error(f"❌ 從 Excel 檔案讀取所有工作表時發生錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] 從 Excel 檔案讀取所有工作表時發生錯誤: {e}", exc_info=True)
             return {}
 
     def write_llm_response(self, sheet_name: str, row_index: int, llm_response: str) -> None:
@@ -121,7 +121,7 @@ class ExcelHandler:
             sheet = self.workbook[sheet_name]
             sheet.cell(row=row_index + 1, column=3, value=llm_response)
         except Exception as e:
-            self.logger.error(f"❌ 寫入 LLM 回應時發生錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] 寫入 LLM 回應時發生錯誤: {e}", exc_info=True)
 
     def write_similarity_scores(self, sheet_name: str, row_index: int, similarity_scores: dict) -> None:
         """
@@ -138,7 +138,7 @@ class ExcelHandler:
                 col += 1
                 
         except Exception as e:
-            self.logger.error(f"❌ 寫入相似度分數時發生錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] 寫入相似度分數時發生錯誤: {e}", exc_info=True)
 
     def save_workbook(self, output_path: str):
         """
@@ -146,9 +146,9 @@ class ExcelHandler:
         """
         try:
             self.workbook.save(output_path)
-            self.logger.info(f"✅ Excel 檔案成功儲存至: {output_path}")
+            self.logger.info(f"[SUCCESS] Excel 檔案成功儲存至: {output_path}")
         except Exception as e:
-            self.logger.error(f"❌ 儲存 Excel 檔案至 '{output_path}' 時發生錯誤: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] 儲存 Excel 檔案至 '{output_path}' 時發生錯誤: {e}", exc_info=True)
     
     def get_total_qa_pairs(self) -> int:
         """
@@ -172,25 +172,25 @@ def demo():
         # Get all sheet names
         sheets = handler.get_all_sheets()
         print("\n" + "="*50)
-        print(f"📑 找到的工作表: {', '.join(sheets)}")
+        print(f"[INFO] 找到的工作表: {', '.join(sheets)}")
         print("="*50)
         
         # Process each sheet
         for sheet_name in sheets:
-            print(f"\n📋 工作表: {sheet_name}")
+            print(f"\n[INFO] 工作表: {sheet_name}")
             print("-"*50)
             qa_pairs = handler.get_qa_pairs(sheet_name)
             
-            print(f"📊 找到 {len(qa_pairs)} 個問答對:")
+            print(f"[INFO] 找到 {len(qa_pairs)} 個問答對:")
             for i, (question, answer) in enumerate(qa_pairs, 1):
                 print(f"\nQ{i}. {question}")
                 print(f"A{i}.\n{answer}")
                 print("-"*30)
                 
     except FileNotFoundError:
-        print("\n❌ 錯誤: techman_robot.xlsx 檔案不存在")
+        print("\n[ERROR] 錯誤: techman_robot.xlsx 檔案不存在")
     except Exception as e:
-        print(f"\n❌ 錯誤: {str(e)}")
+        print(f"\n[ERROR] 錯誤: {str(e)}")
 
 if __name__ == "__main__":
     demo()

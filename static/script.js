@@ -604,7 +604,44 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.progress !== undefined) {
                 const progress = Math.round(data.progress);
                 progressBarFill.style.width = `${progress}%`;
-                progressText.textContent = data.status || `處理中... ${progress}%`;
+                
+                // 如果有詳細的進度資訊，顯示更豐富的狀態
+                if (data.detail) {
+                    const detail = data.detail;
+                    let statusText = data.status || `處理中... ${progress}%`;
+                    
+                    // 如果有工作表資訊，顯示更詳細的進度
+                    if (detail.current_sheet && detail.total_sheets > 1) {
+                        statusText = `工作表 ${detail.current_sheet_index}/${detail.total_sheets}: ${detail.current_sheet} - 第 ${detail.current_item}/${detail.total_items_in_sheet} 筆 (${detail.sheet_progress.toFixed(1)}%)`;
+                    } else if (detail.current_sheet) {
+                        statusText = `${detail.current_sheet} - 第 ${detail.current_item}/${detail.total_items_in_sheet} 筆 (${detail.sheet_progress.toFixed(1)}%)`;
+                    }
+                    
+                    progressText.textContent = statusText;
+                } else {
+                    progressText.textContent = data.status || `處理中... ${progress}%`;
+                }
+                
+                // 根據進度範圍顯示不同的階段提示
+                let stageInfo = '';
+                if (progress <= 10) {
+                    stageInfo = ' (初始化階段)';
+                } else if (progress <= 20) {
+                    stageInfo = ' (驗證階段)';
+                } else if (progress <= 30) {
+                    stageInfo = ' (文件上傳階段)';
+                } else if (progress <= 85) {
+                    stageInfo = ' (問答處理階段)';
+                } else if (progress <= 95) {
+                    stageInfo = ' (圖表生成階段)';
+                } else {
+                    stageInfo = ' (完成階段)';
+                }
+                
+                // 如果狀態文字中沒有包含階段資訊，則添加
+                if (!progressText.textContent.includes('階段')) {
+                    progressText.textContent += stageInfo;
+                }
             }
 
             // 處理舊版本的完成狀態
